@@ -421,6 +421,22 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const Spacer(),
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: TextButton.icon(
+                  onPressed: () async {
+                    await context.read<AuthProvider>().logout();
+                    if (context.mounted) {
+                      Navigator.of(context).pushReplacementNamed('/login');
+                    }
+                  },
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Logout'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red,
+                  ),
+                ),
+              ),
             ],
           );
         }

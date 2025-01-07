@@ -531,6 +531,56 @@
           ]
         }
       },
+      "InviteUserResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "AcceptInviteResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "membership": {
+            "type": "object",
+            "properties": {
+              "workspace_id": {
+                "type": "string"
+              },
+              "user_id": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              },
+              "joined_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "workspace_id",
+              "user_id",
+              "role",
+              "joined_at",
+              "updated_at"
+            ]
+          }
+        },
+        "required": [
+          "message",
+          "membership"
+        ]
+      },
       "CreateChannelResponse": {
         "type": "object",
         "properties": {
@@ -1642,12 +1692,12 @@
         }
       }
     },
-    "/workspace/{id}/member/{userId}": {
+    "/workspace/{id}/invite": {
       "post": {
         "tags": [
           "workspaces"
         ],
-        "summary": "Add a member to a workspace",
+        "summary": "Invite a user to a workspace by email",
         "security": [
           {
             "bearerAuth": []
@@ -1662,31 +1712,50 @@
               "type": "string"
             },
             "description": "Workspace ID"
-          },
-          {
-            "name": "userId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "User ID to add to the workspace"
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
-            "description": "Member added successfully",
+            "description": "User invited successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteUserResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "message": {
+                    "error": {
                       "type": "string"
                     }
                   },
                   "required": [
-                    "message"
+                    "error"
                   ]
                 }
               }
@@ -1711,7 +1780,7 @@
             }
           },
           "403": {
-            "description": "Not authorized to add members",
+            "description": "Not authorized to invite members",
             "content": {
               "application/json": {
                 "schema": {
@@ -1729,7 +1798,97 @@
             }
           },
           "404": {
-            "description": "Workspace or user not found",
+            "description": "User or workspace not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workspace/{id}/accept": {
+      "post": {
+        "tags": [
+          "workspaces"
+        ],
+        "summary": "Accept an invitation to join a workspace",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Workspace ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitation accepted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AcceptInviteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already a member or other error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No invitation found",
             "content": {
               "application/json": {
                 "schema": {
