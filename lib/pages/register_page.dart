@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../providers/auth_provider.dart';
 import '../config/api_config.dart';
-import '../providers/user_provider.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});

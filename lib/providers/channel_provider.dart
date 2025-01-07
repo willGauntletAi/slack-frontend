@@ -172,7 +172,6 @@ class ChannelProvider extends ChangeNotifier {
 
   Future<bool> joinChannel(String accessToken, String channelId, String userId, String workspaceId) async {
     try {
-      print('Joining channel: $channelId for user: $userId');
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/channel/$channelId/member/$userId'),
         headers: {
@@ -181,7 +180,6 @@ class ChannelProvider extends ChangeNotifier {
         },
       );
 
-      print('Join channel response: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200) {
         // Refresh the channels list
@@ -190,12 +188,10 @@ class ChannelProvider extends ChangeNotifier {
       } else {
         final error = json.decode(response.body);
         _error = error['error'] ?? 'Failed to join channel';
-        print('Join channel error: $_error');
         return false;
       }
     } catch (e) {
       _error = 'Network error occurred: $e';
-      print('Join channel exception: $_error');
       return false;
     }
   }

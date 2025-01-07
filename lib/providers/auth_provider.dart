@@ -34,7 +34,6 @@ class AuthProvider extends ChangeNotifier {
         await _refreshAccessToken(refreshToken);
       }
     } catch (e) {
-      print('Error checking auth status: $e');
       _isAuthenticated = false;
       _accessToken = null;
       _currentUser = null;

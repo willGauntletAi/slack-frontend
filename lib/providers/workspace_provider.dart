@@ -9,6 +9,7 @@ class Workspace {
   final String role;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final bool isInvited;
 
   Workspace({
     required this.id,
@@ -16,6 +17,7 @@ class Workspace {
     required this.role,
     required this.createdAt,
     required this.updatedAt,
+    this.isInvited = false,
   });
 
   factory Workspace.fromJson(Map<String, dynamic> json) {
@@ -25,6 +27,7 @@ class Workspace {
       role: json['role'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
+      isInvited: json['role'] == 'invited',
     );
   }
 }
@@ -105,5 +108,140 @@ class WorkspaceProvider with ChangeNotifier {
   void selectWorkspace(Workspace workspace) {
     _selectedWorkspace = workspace;
     notifyListeners();
+  }
+
+  Future<bool> inviteUser(String token, String workspaceId, String email) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/workspace/$workspaceId/invite'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'email': email,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        _error = null;
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        _error = error['error'] ?? 'Failed to send invitation';
+        notifyListeners();
+        _error = null;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Network error occurred';
+      notifyListeners();
+      _error = null;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> acceptInvite(String token, String workspaceId) async {
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/workspace/$workspaceId/accept'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Refresh the workspace list to update the workspace's status
+        await fetchWorkspaces(token);
+        _error = null;
+        _selectedWorkspace = _workspaces.firstWhere((workspace) => workspace.id == workspaceId);
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        _error = error['error'] ?? 'Failed to accept invitation';
+        notifyListeners();
+        _error = null;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Network error occurred';
+      notifyListeners();
+      _error = null;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> rejectInvite(String token, String workspaceId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/workspace/$workspaceId/member/me'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Refresh the workspace list to update available workspaces
+        _selectedWorkspace = null;
+        await fetchWorkspaces(token);
+        _error = null;
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        _error = error['error'] ?? 'Failed to reject invitation';
+        notifyListeners();
+        _error = null;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Network error occurred';
+      notifyListeners();
+      _error = null;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> leaveWorkspace(String token, String workspaceId, String userId) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('${ApiConfig.baseUrl}/workspace/$workspaceId/member/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // Refresh the workspace list to update available workspaces
+        await fetchWorkspaces(token);
+        _error = null;
+        // Clear selected workspace if we just left it
+        if (_selectedWorkspace?.id == workspaceId) {
+          _selectedWorkspace = _workspaces.isNotEmpty ? _workspaces.first : null;
+        }
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        _error = error['error'] ?? 'Failed to leave workspace';
+        notifyListeners();
+        _error = null;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _error = 'Network error occurred';
+      notifyListeners();
+      _error = null;
+      notifyListeners();
+      return false;
+    }
   }
 } 

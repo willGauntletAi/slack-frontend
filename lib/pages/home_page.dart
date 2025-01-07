@@ -310,7 +310,7 @@ class _HomePageState extends State<HomePage> {
                                         workspaceProvider.selectedWorkspace!.id,
                                       );
                                       
-                                      if (mounted) {
+                                      if (context.mounted) {
                                         final error = context.read<ChannelProvider>().error;
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
@@ -344,6 +344,90 @@ class _HomePageState extends State<HomePage> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showInviteDialog() {
+    final emailController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Invite User'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                hintText: 'Enter email address',
+              ),
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isEmpty) return;
+
+              final authProvider = context.read<AuthProvider>();
+              final workspaceProvider = context.read<WorkspaceProvider>();
+              
+              if (authProvider.accessToken == null) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Not authenticated'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+                return;
+              }
+
+              if (workspaceProvider.selectedWorkspace == null) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No workspace selected'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+                return;
+              }
+
+              final success = await workspaceProvider.inviteUser(
+                authProvider.accessToken!,
+                workspaceProvider.selectedWorkspace!.id,
+                email,
+              );
+
+              if (context.mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      success
+                        ? 'Invitation sent to $email'
+                        : workspaceProvider.error ?? 'Failed to send invitation',
+                    ),
+                    backgroundColor: success ? Colors.green : Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Invite'),
           ),
         ],
       ),
@@ -476,22 +560,44 @@ class _HomePageState extends State<HomePage> {
                         shape: BoxShape.circle,
                         color: isSelected ? Colors.blue : Colors.grey[300],
                       ),
-                      child: InkWell(
-                        onTap: () => workspaceProvider.selectWorkspace(workspace),
-                        customBorder: const CircleBorder(),
-                        child: Container(
-                          width: isFullScreen ? 64 : 40,
-                          height: isFullScreen ? 64 : 40,
-                          alignment: Alignment.center,
-                          child: Text(
-                            workspace.name[0].toUpperCase(),
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : Colors.black,
-                              fontWeight: FontWeight.bold,
-                              fontSize: isFullScreen ? 24 : 16,
+                      child: Stack(
+                        children: [
+                          InkWell(
+                            onTap: () => workspaceProvider.selectWorkspace(workspace),
+                            customBorder: const CircleBorder(),
+                            child: Container(
+                              width: isFullScreen ? 64 : 40,
+                              height: isFullScreen ? 64 : 40,
+                              alignment: Alignment.center,
+                              child: Text(
+                                workspace.name[0].toUpperCase(),
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: isFullScreen ? 24 : 16,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          if (workspace.isInvited)
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: Container(
+                                width: isFullScreen ? 20 : 14,
+                                height: isFullScreen ? 20 : 14,
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.mail_outline,
+                                  color: Colors.white,
+                                  size: isFullScreen ? 14 : 10,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   );
@@ -549,12 +655,94 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                selectedWorkspace.name,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      selectedWorkspace.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (selectedWorkspace.role == 'admin')
+                    IconButton(
+                      icon: const Icon(Icons.person_add, color: Colors.white),
+                      tooltip: 'Invite User',
+                      onPressed: _showInviteDialog,
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.exit_to_app, color: Colors.white),
+                      tooltip: 'Leave Workspace',
+                      onPressed: () async {
+                        // Show confirmation dialog
+                        final shouldLeave = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Leave Workspace'),
+                            content: Text('Are you sure you want to leave ${selectedWorkspace.name}?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                ),
+                                child: const Text('Leave'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (shouldLeave == true && mounted) {
+                          final authProvider = context.read<AuthProvider>();
+                          if (authProvider.accessToken != null && authProvider.currentUser != null) {
+                            final workspaceName = selectedWorkspace.name;
+                            final success = await context.read<WorkspaceProvider>().leaveWorkspace(
+                              authProvider.accessToken!,
+                              selectedWorkspace.id,
+                              authProvider.currentUser!.id,
+                            );
+                            
+                            if (mounted) {
+                              final error = context.read<WorkspaceProvider>().error;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    success
+                                      ? 'Left $workspaceName'
+                                      : error ?? 'Failed to leave workspace',
+                                  ),
+                                  backgroundColor: success ? null : Colors.red,
+                                ),
+                              );
+
+                              if (success) {
+                                // Clear the channels since we left the workspace
+                                context.read<ChannelProvider>().clearChannels();
+                              }
+                            }
+                          } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Unable to leave workspace: User not found'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                    ),
+                ],
               ),
               const Spacer(),
               Row(
@@ -573,6 +761,7 @@ class _HomePageState extends State<HomePage> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.logout, color: Colors.white),
+                    tooltip: 'Logout',
                     onPressed: () async {
                       await context.read<AuthProvider>().logout();
                       if (mounted) {
@@ -699,7 +888,6 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildChatArea() {
     final selectedWorkspace = context.watch<WorkspaceProvider>().selectedWorkspace;
-    final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
 
     if (selectedWorkspace == null) {
       return const Center(
@@ -726,6 +914,117 @@ class _HomePageState extends State<HomePage> {
               style: TextStyle(
                 color: Colors.grey,
               ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Show accept/reject buttons for invited workspaces
+    if (selectedWorkspace.isInvited) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.mail_outline,
+              size: 64,
+              color: Colors.blue,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Invitation to ${selectedWorkspace.name}',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    final authProvider = context.read<AuthProvider>();
+                    if (authProvider.accessToken != null) {
+                      final success = await context.read<WorkspaceProvider>().acceptInvite(
+                        authProvider.accessToken!,
+                        selectedWorkspace.id,
+                      );
+                      
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                ? 'Joined ${selectedWorkspace.name}'
+                                : context.read<WorkspaceProvider>().error ?? 'Failed to join workspace',
+                            ),
+                            backgroundColor: success ? Colors.green : Colors.red,
+                          ),
+                        );
+
+                        if (success) {
+                          // Fetch channels for the newly joined workspace
+                          await context.read<ChannelProvider>().fetchChannels(
+                            authProvider.accessToken!,
+                            selectedWorkspace.id,
+                          );
+                        }
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.check),
+                  label: const Text('Accept Invite'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final authProvider = context.read<AuthProvider>();
+                    if (authProvider.accessToken != null) {
+                      final success = await context.read<WorkspaceProvider>().rejectInvite(
+                        authProvider.accessToken!,
+                        selectedWorkspace.id,
+                      );
+                      
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                ? 'Rejected invitation to ${selectedWorkspace.name}'
+                                : context.read<WorkspaceProvider>().error ?? 'Failed to reject invitation',
+                            ),
+                            backgroundColor: success ? null : Colors.red,
+                          ),
+                        );
+
+                        if (success) {
+                          // Clear the channels since we rejected the workspace
+                          context.read<ChannelProvider>().clearChannels();
+                        }
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.close),
+                  label: const Text('Reject Invite'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
