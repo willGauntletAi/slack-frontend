@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
+import 'user_provider.dart';
 
 class Channel {
   final String id;
@@ -122,10 +123,10 @@ class ChannelProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> leaveChannel(String accessToken, String channelId) async {
+  Future<bool> leaveChannel(String accessToken, String channelId, String userId) async {
     try {
       final response = await http.delete(
-        Uri.parse('${ApiConfig.baseUrl}/channel/$channelId/member/me'),
+        Uri.parse('${ApiConfig.baseUrl}/channel/$channelId/member/$userId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',

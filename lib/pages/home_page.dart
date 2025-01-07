@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
+import '../providers/user_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -453,15 +454,32 @@ class _HomePageState extends State<HomePage> {
                                   onTap: () async {
                                     Navigator.pop(context); // Close bottom sheet
                                     final authProvider = context.read<AuthProvider>();
-                                    if (authProvider.accessToken != null) {
+                                    final userProvider = context.read<UserProvider>();
+                                    
+                                    if (authProvider.accessToken != null && userProvider.userId != null) {
                                       final success = await channelProvider.leaveChannel(
                                         authProvider.accessToken!,
                                         channel.id,
+                                        userProvider.userId!,
                                       );
-                                      if (mounted && success) {
+                                      if (mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
-                                            content: Text('Left ${channel.name}'),
+                                            content: Text(
+                                              success 
+                                                ? 'Left ${channel.name}'
+                                                : channelProvider.error ?? 'Failed to leave channel',
+                                            ),
+                                            backgroundColor: success ? null : Colors.red,
+                                          ),
+                                        );
+                                      }
+                                    } else {
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Unable to leave channel: User ID not found'),
+                                            backgroundColor: Colors.red,
                                           ),
                                         );
                                       }

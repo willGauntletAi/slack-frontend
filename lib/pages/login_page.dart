@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../providers/auth_provider.dart';
 import '../config/api_config.dart';
+import '../providers/user_provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -49,6 +50,9 @@ class _LoginPageState extends State<LoginPage> {
             accessToken: data['accessToken'],
             refreshToken: data['refreshToken'],
           );
+          
+          // Store user information
+          context.read<UserProvider>().setCurrentUser(data['user']);
           
           if (mounted) {
             Navigator.of(context).pushReplacementNamed('/home');
