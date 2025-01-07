@@ -724,27 +724,33 @@
             "type": "string"
           },
           "parent_id": {
-            "type": "string"
-          },
-          "user_id": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "created_at": {
             "type": "string"
           },
           "updated_at": {
             "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
           }
         },
         "required": [
           "id",
           "content",
-          "user_id",
+          "parent_id",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "user_id",
+          "channel_id"
         ]
       },
-      "GetMessagesResponse": {
+      "ListMessagesResponse": {
         "type": "array",
         "items": {
           "type": "object",
@@ -756,10 +762,8 @@
               "type": "string"
             },
             "parent_id": {
-              "type": "string"
-            },
-            "user_id": {
-              "type": "string"
+              "type": "string",
+              "nullable": true
             },
             "created_at": {
               "type": "string"
@@ -767,32 +771,21 @@
             "updated_at": {
               "type": "string"
             },
-            "reactions": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "emoji": {
-                    "type": "string"
-                  },
-                  "user_id": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "emoji",
-                  "user_id"
-                ]
-              }
+            "user_id": {
+              "type": "string"
+            },
+            "username": {
+              "type": "string"
             }
           },
           "required": [
             "id",
             "content",
-            "user_id",
+            "parent_id",
             "created_at",
             "updated_at",
-            "reactions"
+            "user_id",
+            "username"
           ]
         }
       },
@@ -806,43 +799,41 @@
             "type": "string"
           },
           "parent_id": {
-            "type": "string"
-          },
-          "user_id": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "created_at": {
             "type": "string"
           },
           "updated_at": {
             "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "channel_id": {
+            "type": "string"
           }
         },
         "required": [
           "id",
           "content",
-          "user_id",
+          "parent_id",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "user_id",
+          "channel_id"
         ]
       },
-      "AddReactionResponse": {
+      "DeleteMessageResponse": {
         "type": "object",
         "properties": {
-          "message_id": {
-            "type": "string"
-          },
-          "emoji": {
-            "type": "string"
-          },
-          "user_id": {
+          "message": {
             "type": "string"
           }
         },
         "required": [
-          "message_id",
-          "emoji",
-          "user_id"
+          "message"
         ]
       },
       "CreateDMChannelResponse": {
@@ -2755,24 +2746,6 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "Channel not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
           }
         }
       },
@@ -2780,7 +2753,7 @@
         "tags": [
           "messages"
         ],
-        "summary": "Get messages from a channel",
+        "summary": "List messages in a channel",
         "security": [
           {
             "bearerAuth": []
@@ -2797,34 +2770,32 @@
             "description": "Channel ID"
           },
           {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 50
+            },
+            "description": "Number of messages to return"
+          },
+          {
             "name": "before",
             "in": "query",
             "required": false,
             "schema": {
               "type": "string"
             },
-            "description": "Get messages before this message id"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "default": 50
-            },
-            "description": "Maximum number of messages to return"
+            "description": "Message ID to fetch messages before"
           }
         ],
         "responses": {
           "200": {
-            "description": "Messages retrieved successfully",
+            "description": "List of messages retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetMessagesResponse"
+                  "$ref": "#/components/schemas/ListMessagesResponse"
                 }
               }
             }
@@ -2849,24 +2820,6 @@
           },
           "403": {
             "description": "Not a member of the channel",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Channel not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -2974,7 +2927,7 @@
             }
           },
           "403": {
-            "description": "Not authorized to update message",
+            "description": "Not authorized to update this message",
             "content": {
               "application/json": {
                 "schema": {
@@ -3038,15 +2991,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "message"
-                  ]
+                  "$ref": "#/components/schemas/DeleteMessageResponse"
                 }
               }
             }
@@ -3070,133 +3015,7 @@
             }
           },
           "403": {
-            "description": "Not authorized to delete message",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Message not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/message/{id}/reaction": {
-      "post": {
-        "tags": [
-          "messages"
-        ],
-        "summary": "Add a reaction to a message",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Message ID"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "emoji": {
-                    "type": "string",
-                    "minLength": 1
-                  }
-                },
-                "required": [
-                  "emoji"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Reaction added successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AddReactionResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request body",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Not authenticated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Not a member of the channel",
+            "description": "Not authorized to delete this message",
             "content": {
               "application/json": {
                 "schema": {

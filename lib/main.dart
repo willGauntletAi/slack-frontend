@@ -6,6 +6,7 @@ import 'providers/auth_provider.dart';
 import 'providers/workspace_provider.dart';
 import 'providers/channel_provider.dart';
 import 'providers/user_provider.dart';
+import 'providers/message_provider.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
 import 'pages/home_page.dart';
@@ -29,6 +30,9 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (_) => ChannelProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MessageProvider(),
         ),
       ],
       child: const MainApp(),

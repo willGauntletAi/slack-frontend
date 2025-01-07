@@ -1,0 +1,214 @@
+{
+  "clientMessages": {
+    "_def": {
+      "typeName": "ZodDiscriminatedUnion",
+      "discriminator": "type",
+      "options": [
+        {
+          "_def": {
+            "unknownKeys": "strip",
+            "catchall": {
+              "_def": {
+                "typeName": "ZodNever"
+              },
+              "~standard": {
+                "version": 1,
+                "vendor": "zod"
+              }
+            },
+            "typeName": "ZodObject",
+            "openapi": {
+              "metadata": {
+                "description": "Subscribe to a channel"
+              }
+            }
+          },
+          "~standard": {
+            "version": 1,
+            "vendor": "zod"
+          },
+          "_cached": null
+        },
+        {
+          "_def": {
+            "unknownKeys": "strip",
+            "catchall": {
+              "_def": {
+                "typeName": "ZodNever"
+              },
+              "~standard": {
+                "version": 1,
+                "vendor": "zod"
+              }
+            },
+            "typeName": "ZodObject",
+            "openapi": {
+              "metadata": {
+                "description": "Unsubscribe from a channel"
+              }
+            }
+          },
+          "~standard": {
+            "version": 1,
+            "vendor": "zod"
+          },
+          "_cached": null
+        }
+      ],
+      "optionsMap": {}
+    },
+    "~standard": {
+      "version": 1,
+      "vendor": "zod"
+    }
+  },
+  "serverMessages": {
+    "_def": {
+      "options": [
+        {
+          "_def": {
+            "typeName": "ZodDiscriminatedUnion",
+            "discriminator": "type",
+            "options": [
+              {
+                "_def": {
+                  "unknownKeys": "strip",
+                  "catchall": {
+                    "_def": {
+                      "typeName": "ZodNever"
+                    },
+                    "~standard": {
+                      "version": 1,
+                      "vendor": "zod"
+                    }
+                  },
+                  "typeName": "ZodObject",
+                  "openapi": {
+                    "metadata": {
+                      "description": "New message event"
+                    }
+                  }
+                },
+                "~standard": {
+                  "version": 1,
+                  "vendor": "zod"
+                },
+                "_cached": null
+              },
+              {
+                "_def": {
+                  "unknownKeys": "strip",
+                  "catchall": {
+                    "_def": {
+                      "typeName": "ZodNever"
+                    },
+                    "~standard": {
+                      "version": 1,
+                      "vendor": "zod"
+                    }
+                  },
+                  "typeName": "ZodObject",
+                  "openapi": {
+                    "metadata": {
+                      "description": "Connection successful event"
+                    }
+                  }
+                },
+                "~standard": {
+                  "version": 1,
+                  "vendor": "zod"
+                },
+                "_cached": null
+              },
+              {
+                "_def": {
+                  "unknownKeys": "strip",
+                  "catchall": {
+                    "_def": {
+                      "typeName": "ZodNever"
+                    },
+                    "~standard": {
+                      "version": 1,
+                      "vendor": "zod"
+                    }
+                  },
+                  "typeName": "ZodObject",
+                  "openapi": {
+                    "metadata": {
+                      "description": "Channel subscription successful event"
+                    }
+                  }
+                },
+                "~standard": {
+                  "version": 1,
+                  "vendor": "zod"
+                },
+                "_cached": null
+              },
+              {
+                "_def": {
+                  "unknownKeys": "strip",
+                  "catchall": {
+                    "_def": {
+                      "typeName": "ZodNever"
+                    },
+                    "~standard": {
+                      "version": 1,
+                      "vendor": "zod"
+                    }
+                  },
+                  "typeName": "ZodObject",
+                  "openapi": {
+                    "metadata": {
+                      "description": "Channel unsubscription successful event"
+                    }
+                  }
+                },
+                "~standard": {
+                  "version": 1,
+                  "vendor": "zod"
+                },
+                "_cached": null
+              }
+            ],
+            "optionsMap": {}
+          },
+          "~standard": {
+            "version": 1,
+            "vendor": "zod"
+          }
+        },
+        {
+          "_def": {
+            "unknownKeys": "strip",
+            "catchall": {
+              "_def": {
+                "typeName": "ZodNever"
+              },
+              "~standard": {
+                "version": 1,
+                "vendor": "zod"
+              }
+            },
+            "typeName": "ZodObject",
+            "openapi": {
+              "metadata": {
+                "description": "Error event"
+              }
+            }
+          },
+          "~standard": {
+            "version": 1,
+            "vendor": "zod"
+          },
+          "_cached": null
+        }
+      ],
+      "typeName": "ZodUnion"
+    },
+    "~standard": {
+      "version": 1,
+      "vendor": "zod"
+    }
+  }
+}
