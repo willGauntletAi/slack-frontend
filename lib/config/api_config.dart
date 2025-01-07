@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show debugPrint;
 
 class ApiConfig {
   static String get baseUrl {
@@ -18,6 +19,13 @@ class ApiConfig {
     }
     // Default fallback
     return 'http://localhost:3000';
+  }
+
+  static String get wsUrl {
+    final httpUrl = baseUrl;
+    final wsUrl = '${httpUrl.replaceFirst('http', 'ws')}/ws';
+    debugPrint('Constructed WebSocket URL: $wsUrl');
+    return wsUrl;
   }
 
   static String get loginUrl => '$baseUrl/auth/login';

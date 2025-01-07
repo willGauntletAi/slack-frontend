@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
+import '../providers/message_provider.dart';
+import '../providers/websocket_provider.dart';
 import '../widgets/workspace_list.dart';
 import '../widgets/channel_list.dart';
 import '../widgets/chat_area.dart';
@@ -24,27 +26,65 @@ class _HomePageState extends State<HomePage> {
     _workspaceProvider = context.read<WorkspaceProvider>();
 
     // Fetch workspaces when the page loads
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         final authProvider = context.read<AuthProvider>();
-        if (authProvider.accessToken != null) {
-          _workspaceProvider.fetchWorkspaces(authProvider.accessToken!);
+        final wsProvider = context.read<WebSocketProvider>();
+        if (authProvider.accessToken != null && !wsProvider.isConnected) {
+          // Connect to WebSocket first
+          try {
+            await wsProvider.connect(authProvider.accessToken!);
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Failed to connect to WebSocket: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          }
+          
+          // Then fetch workspaces
+          if (mounted) {
+            await _workspaceProvider.fetchWorkspaces(authProvider.accessToken!);
+          }
         }
       }
     });
 
     // Listen for workspace changes and fetch channels
-    _workspaceListener = () {
+    _workspaceListener = () async {
       if (!mounted) return;
       final workspace = _workspaceProvider.selectedWorkspace;
       final authProvider = context.read<AuthProvider>();
       if (workspace != null && authProvider.accessToken != null) {
-        context.read<ChannelProvider>().fetchChannels(
-          authProvider.accessToken!,
-          workspace.id,
-        );
+        try {
+          // Fetch channels for the workspace
+          await context.read<ChannelProvider>().fetchChannels(
+            authProvider.accessToken!,
+            workspace.id,
+          );
+          
+          // Subscribe to the workspace's real-time updates
+          if (mounted) {
+            context.read<WebSocketProvider>().subscribeToWorkspace(workspace.id);
+            // Clear message state for the new workspace
+            context.read<MessageProvider>().clearAllChannels();
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to load channels: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       } else {
         context.read<ChannelProvider>().clearChannels();
+        context.read<MessageProvider>().clearAllChannels();
       }
     };
     _workspaceProvider.addListener(_workspaceListener!);

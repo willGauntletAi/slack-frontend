@@ -17,12 +17,14 @@ class _ChatAreaState extends State<ChatArea> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   late final ChannelProvider _channelProvider;
+  late final MessageProvider _messageProvider;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
     _channelProvider = context.read<ChannelProvider>();
+    _messageProvider = context.read<MessageProvider>();
 
     // Initial load of messages
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -35,15 +37,14 @@ class _ChatAreaState extends State<ChatArea> {
 
   void _onScroll() {
     if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.9) {
-      final channel = context.read<ChannelProvider>().selectedChannel;
+      final channel = _channelProvider.selectedChannel;
       final authProvider = context.read<AuthProvider>();
-      final messageProvider = context.read<MessageProvider>();
       
       if (channel != null && 
           authProvider.accessToken != null && 
-          !messageProvider.isLoading && 
-          messageProvider.hasMore) {
-        messageProvider.loadMessages(
+          !_messageProvider.isLoading && 
+          _messageProvider.hasMore) {
+        _messageProvider.loadMessages(
           authProvider.accessToken!,
           channel.id,
         );
@@ -52,20 +53,26 @@ class _ChatAreaState extends State<ChatArea> {
   }
 
   void _onChannelChanged() {
-    final channel = context.read<ChannelProvider>().selectedChannel;
-    if (channel != null) {
+    final channel = _channelProvider.selectedChannel;
+    final authProvider = context.read<AuthProvider>();
+    
+    if (channel != null && authProvider.accessToken != null) {
+      debugPrint('Channel changed to: ${channel.id}');
       // Clear existing messages and load new ones
-      context.read<MessageProvider>().clearMessages();
-      _loadInitialMessages();
+      _messageProvider.setCurrentChannel(channel.id);
+      _messageProvider.loadMessages(
+        authProvider.accessToken!,
+        channel.id,
+      );
     }
   }
 
   void _loadInitialMessages() {
-    final channel = context.read<ChannelProvider>().selectedChannel;
+    final channel = _channelProvider.selectedChannel;
     final authProvider = context.read<AuthProvider>();
     
     if (channel != null && authProvider.accessToken != null) {
-      context.read<MessageProvider>().loadMessages(
+      _messageProvider.loadMessages(
         authProvider.accessToken!,
         channel.id,
       );
@@ -108,7 +115,7 @@ class _ChatAreaState extends State<ChatArea> {
 
     _messageController.clear();
     
-    final message = await context.read<MessageProvider>().sendMessage(
+    final message = await _messageProvider.sendMessage(
       authProvider.accessToken!,
       channel.id,
       text,
@@ -117,7 +124,7 @@ class _ChatAreaState extends State<ChatArea> {
     if (message == null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(context.read<MessageProvider>().error ?? 'Failed to send message'),
+          content: Text(_messageProvider.error ?? 'Failed to send message'),
           backgroundColor: Colors.red,
         ),
       );

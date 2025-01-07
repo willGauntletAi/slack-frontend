@@ -7,6 +7,7 @@ import 'providers/workspace_provider.dart';
 import 'providers/channel_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/message_provider.dart';
+import 'providers/websocket_provider.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
 import 'pages/home_page.dart';
@@ -32,7 +33,12 @@ void main() async {
           create: (_) => ChannelProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => MessageProvider(),
+          create: (_) => WebSocketProvider(),
+        ),
+        ChangeNotifierProxyProvider<WebSocketProvider, MessageProvider>(
+          create: (context) => MessageProvider(context.read<WebSocketProvider>()),
+          update: (context, webSocketProvider, previous) =>
+            previous ?? MessageProvider(webSocketProvider),
         ),
       ],
       child: const MainApp(),
@@ -61,8 +67,25 @@ class MainApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final authProvider = context.watch<AuthProvider>();
+    final wsProvider = context.read<WebSocketProvider>();
+
+    // Connect to WebSocket when authenticated
+    if (authProvider.isAuthenticated && authProvider.accessToken != null) {
+      wsProvider.connect(authProvider.accessToken!);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

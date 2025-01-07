@@ -1,7 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import '../config/api_config.dart';
+import 'websocket_provider.dart';
 
 class Message {
   final String id;
@@ -11,6 +13,7 @@ class Message {
   final DateTime updatedAt;
   final String userId;
   final String username;
+  final String channelId;
 
   Message({
     required this.id,
@@ -20,6 +23,7 @@ class Message {
     required this.updatedAt,
     required this.userId,
     required this.username,
+    required this.channelId,
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
@@ -31,34 +35,129 @@ class Message {
       updatedAt: DateTime.parse(json['updated_at']),
       userId: json['user_id'],
       username: json['username'],
+      channelId: json['channel_id'],
     );
   }
 }
 
-class MessageProvider extends ChangeNotifier {
-  List<Message> _messages = [];
-  bool _isLoading = false;
-  String? _error;
-  String? _lastMessageId;
-  bool _hasMore = true;
+class MessageProvider with ChangeNotifier {
+  final WebSocketProvider webSocketProvider;
+  // Map of channelId to list of messages
+  final Map<String, List<Message>> _channelMessages = {};
+  // Map of channelId to loading state
+  final Map<String, bool> _channelLoading = {};
+  // Map of channelId to error state
+  final Map<String, String?> _channelErrors = {};
+  // Map of channelId to last message ID
+  final Map<String, String?> _channelLastMessageIds = {};
+  // Map of channelId to hasMore state
+  final Map<String, bool> _channelHasMore = {};
+  String? _currentChannelId;
+  StreamSubscription? _messageSubscription;
 
-  List<Message> get messages => _messages;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  bool get hasMore => _hasMore;
+  MessageProvider(this.webSocketProvider) {
+    _messageSubscription = webSocketProvider.messageStream.listen(_handleWebSocketMessage);
+  }
+
+  List<Message> get messages => _channelMessages[_currentChannelId] ?? [];
+  bool get isLoading => _channelLoading[_currentChannelId] ?? false;
+  String? get error => _channelErrors[_currentChannelId];
+  bool get hasMore => _channelHasMore[_currentChannelId] ?? true;
+
+  void _handleWebSocketMessage(Map<String, dynamic> message) {
+    switch (message['type']) {
+      case 'new_message':
+        debugPrint('Handling new message event');
+        final messageData = message['message'] as Map<String, dynamic>;
+        // Add channelId from the WebSocket message to the message data
+        messageData['channel_id'] = message['channelId'];
+        final newMessage = Message.fromJson(messageData);
+        debugPrint('Created new message object for channel ${newMessage.channelId}');
+        debugPrint('Current channel ID: $_currentChannelId');
+        
+        final channelMessages = _channelMessages[newMessage.channelId] ?? [];
+        debugPrint('Current messages in channel: ${channelMessages.length}');
+        
+        // Check if message already exists
+        if (channelMessages.any((m) => m.id == newMessage.id)) {
+          debugPrint('Message ${newMessage.id} already exists in channel, skipping');
+          return; // Skip duplicate message
+        }
+        
+        // Find the correct position to insert the new message
+        // Messages are ordered from newest (largest ID) to oldest (smallest ID)
+        int insertIndex = channelMessages.indexWhere((m) => m.id.compareTo(newMessage.id) < 0);
+        if (insertIndex == -1) {
+          debugPrint('Adding message ${newMessage.id} to end of list');
+          // If all messages have smaller IDs, append to the end
+          channelMessages.add(newMessage);
+        } else {
+          debugPrint('Inserting message ${newMessage.id} at position $insertIndex');
+          // Insert before the first message with a larger ID
+          channelMessages.insert(insertIndex, newMessage);
+        }
+        _channelMessages[newMessage.channelId] = channelMessages;
+        debugPrint('Updated messages in channel: ${channelMessages.length}');
+        notifyListeners();
+        break;
+
+      case 'message_updated':
+        final updatedMessage = Message.fromJson(message['message']);
+        final channelMessages = _channelMessages[updatedMessage.channelId];
+        if (channelMessages != null) {
+          final index = channelMessages.indexWhere((m) => m.id == updatedMessage.id);
+          if (index != -1) {
+            channelMessages[index] = updatedMessage;
+            notifyListeners();
+          }
+        }
+        break;
+
+      case 'message_deleted':
+        final messageId = message['messageId'];
+        final channelId = message['channelId'];
+        final channelMessages = _channelMessages[channelId];
+        if (channelMessages != null) {
+          channelMessages.removeWhere((m) => m.id == messageId);
+          notifyListeners();
+        }
+        break;
+    }
+  }
+
+  void setCurrentChannel(String channelId) {
+    debugPrint('Setting current channel to: $channelId');
+    _currentChannelId = channelId;
+    // Initialize channel state if needed
+    if (!_channelMessages.containsKey(channelId)) {
+      debugPrint('Initializing new channel state for: $channelId');
+      _channelMessages[channelId] = [];
+      _channelLoading[channelId] = false;
+      _channelHasMore[channelId] = true;
+    } else {
+      debugPrint('Channel $channelId already initialized with ${_channelMessages[channelId]?.length} messages');
+    }
+    notifyListeners();
+  }
 
   Future<void> loadMessages(String accessToken, String channelId, {int limit = 50}) async {
-    if (_isLoading) return;
+    debugPrint('Loading messages for channel: $channelId');
+    if (_channelLoading[channelId] == true) {
+      debugPrint('Already loading messages for channel: $channelId');
+      return;
+    }
 
-    _isLoading = true;
-    _error = null;
+    _channelLoading[channelId] = true;
+    _channelErrors[channelId] = null;
     notifyListeners();
 
     try {
       var url = '${ApiConfig.baseUrl}/message/channel/$channelId?limit=$limit';
-      if (_lastMessageId != null) {
-        url += '&before=$_lastMessageId';
+      final lastMessageId = _channelLastMessageIds[channelId];
+      if (lastMessageId != null) {
+        url += '&before=$lastMessageId';
       }
+      debugPrint('Fetching messages from: $url');
 
       final response = await http.get(
         Uri.parse(url),
@@ -70,26 +169,56 @@ class MessageProvider extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+        debugPrint('Received ${data.length} messages');
         final newMessages = data.map((json) => Message.fromJson(json)).toList();
         
         if (newMessages.isEmpty) {
-          _hasMore = false;
+          debugPrint('No more messages to load');
+          _channelHasMore[channelId] = false;
         } else {
-          _messages.addAll(newMessages);
-          _lastMessageId = newMessages.last.id;
+          final channelMessages = _channelMessages[channelId] ?? [];
+          debugPrint('Adding ${newMessages.length} messages to existing ${channelMessages.length} messages');
+          channelMessages.addAll(newMessages);
+          _channelMessages[channelId] = channelMessages;
+          _channelLastMessageIds[channelId] = newMessages.last.id;
+          debugPrint('Updated channel messages count: ${channelMessages.length}');
         }
         
-        _error = null;
+        _channelErrors[channelId] = null;
       } else {
         final error = json.decode(response.body);
-        _error = error['error'] ?? 'Failed to load messages';
+        debugPrint('Error loading messages: ${error['error']}');
+        _channelErrors[channelId] = error['error'] ?? 'Failed to load messages';
       }
     } catch (e) {
-      _error = 'Network error occurred';
+      debugPrint('Error loading messages: $e');
+      _channelErrors[channelId] = 'Network error occurred';
     } finally {
-      _isLoading = false;
+      _channelLoading[channelId] = false;
       notifyListeners();
     }
+  }
+
+  void clearChannel(String channelId) {
+    _channelMessages.remove(channelId);
+    _channelLoading.remove(channelId);
+    _channelErrors.remove(channelId);
+    _channelLastMessageIds.remove(channelId);
+    _channelHasMore.remove(channelId);
+    if (_currentChannelId == channelId) {
+      _currentChannelId = null;
+    }
+    notifyListeners();
+  }
+
+  void clearAllChannels() {
+    _channelMessages.clear();
+    _channelLoading.clear();
+    _channelErrors.clear();
+    _channelLastMessageIds.clear();
+    _channelHasMore.clear();
+    _currentChannelId = null;
+    notifyListeners();
   }
 
   Future<Message?> sendMessage(String accessToken, String channelId, String content, {String? parentId}) async {
@@ -109,16 +238,15 @@ class MessageProvider extends ChangeNotifier {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         final newMessage = Message.fromJson(data);
-        _messages.insert(0, newMessage);
-        notifyListeners();
+        // Don't add the message here, it will come through WebSocket
         return newMessage;
       } else {
         final error = json.decode(response.body);
-        _error = error['error'] ?? 'Failed to send message';
+        _channelErrors[channelId] = error['error'] ?? 'Failed to send message';
         return null;
       }
     } catch (e) {
-      _error = 'Network error occurred';
+      _channelErrors[channelId] = 'Network error occurred';
       return null;
     }
   }
@@ -137,21 +265,19 @@ class MessageProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final updatedMessage = Message.fromJson(data);
-        final index = _messages.indexWhere((m) => m.id == messageId);
-        if (index != -1) {
-          _messages[index] = updatedMessage;
-          notifyListeners();
-        }
+        // Don't update the message here, it will come through WebSocket
         return true;
       } else {
         final error = json.decode(response.body);
-        _error = error['error'] ?? 'Failed to update message';
+        if (_currentChannelId != null) {
+          _channelErrors[_currentChannelId!] = error['error'] ?? 'Failed to update message';
+        }
         return false;
       }
     } catch (e) {
-      _error = 'Network error occurred';
+      if (_currentChannelId != null) {
+        _channelErrors[_currentChannelId!] = 'Network error occurred';
+      }
       return false;
     }
   }
@@ -167,25 +293,26 @@ class MessageProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        _messages.removeWhere((m) => m.id == messageId);
-        notifyListeners();
+        // Don't remove the message here, it will come through WebSocket
         return true;
       } else {
         final error = json.decode(response.body);
-        _error = error['error'] ?? 'Failed to delete message';
+        if (_currentChannelId != null) {
+          _channelErrors[_currentChannelId!] = error['error'] ?? 'Failed to delete message';
+        }
         return false;
       }
     } catch (e) {
-      _error = 'Network error occurred';
+      if (_currentChannelId != null) {
+        _channelErrors[_currentChannelId!] = 'Network error occurred';
+      }
       return false;
     }
   }
 
-  void clearMessages() {
-    _messages = [];
-    _lastMessageId = null;
-    _hasMore = true;
-    _error = null;
-    notifyListeners();
+  @override
+  void dispose() {
+    _messageSubscription?.cancel();
+    super.dispose();
   }
 } 
