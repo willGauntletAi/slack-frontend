@@ -16,11 +16,13 @@ class ChatArea extends StatefulWidget {
 class _ChatAreaState extends State<ChatArea> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
+  late final ChannelProvider _channelProvider;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
+    _channelProvider = context.read<ChannelProvider>();
 
     // Initial load of messages
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -28,7 +30,7 @@ class _ChatAreaState extends State<ChatArea> {
     });
 
     // Listen for channel changes
-    context.read<ChannelProvider>().addListener(_onChannelChanged);
+    _channelProvider.addListener(_onChannelChanged);
   }
 
   void _onScroll() {
@@ -74,7 +76,7 @@ class _ChatAreaState extends State<ChatArea> {
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
-    context.read<ChannelProvider>().removeListener(_onChannelChanged);
+    _channelProvider.removeListener(_onChannelChanged);
     super.dispose();
   }
 

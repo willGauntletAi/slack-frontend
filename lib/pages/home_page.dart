@@ -15,20 +15,28 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  VoidCallback? _workspaceListener;
+  late final WorkspaceProvider _workspaceProvider;
+
   @override
   void initState() {
     super.initState();
+    _workspaceProvider = context.read<WorkspaceProvider>();
+
     // Fetch workspaces when the page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authProvider = context.read<AuthProvider>();
-      if (authProvider.accessToken != null) {
-        context.read<WorkspaceProvider>().fetchWorkspaces(authProvider.accessToken!);
+      if (mounted) {
+        final authProvider = context.read<AuthProvider>();
+        if (authProvider.accessToken != null) {
+          _workspaceProvider.fetchWorkspaces(authProvider.accessToken!);
+        }
       }
     });
 
     // Listen for workspace changes and fetch channels
-    context.read<WorkspaceProvider>().addListener(() {
-      final workspace = context.read<WorkspaceProvider>().selectedWorkspace;
+    _workspaceListener = () {
+      if (!mounted) return;
+      final workspace = _workspaceProvider.selectedWorkspace;
       final authProvider = context.read<AuthProvider>();
       if (workspace != null && authProvider.accessToken != null) {
         context.read<ChannelProvider>().fetchChannels(
@@ -38,7 +46,16 @@ class _HomePageState extends State<HomePage> {
       } else {
         context.read<ChannelProvider>().clearChannels();
       }
-    });
+    };
+    _workspaceProvider.addListener(_workspaceListener!);
+  }
+
+  @override
+  void dispose() {
+    if (_workspaceListener != null) {
+      _workspaceProvider.removeListener(_workspaceListener!);
+    }
+    super.dispose();
   }
 
   void _showCreateWorkspaceDialog() {
