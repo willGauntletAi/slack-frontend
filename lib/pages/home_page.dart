@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
+import '../providers/channel_provider.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -22,6 +23,20 @@ class _HomePageState extends State<HomePage> {
       final authProvider = context.read<AuthProvider>();
       if (authProvider.accessToken != null) {
         context.read<WorkspaceProvider>().fetchWorkspaces(authProvider.accessToken!);
+      }
+    });
+
+    // Listen for workspace changes and fetch channels
+    context.read<WorkspaceProvider>().addListener(() {
+      final workspace = context.read<WorkspaceProvider>().selectedWorkspace;
+      final authProvider = context.read<AuthProvider>();
+      if (workspace != null && authProvider.accessToken != null) {
+        context.read<ChannelProvider>().fetchChannels(
+          authProvider.accessToken!,
+          workspace.id,
+        );
+      } else {
+        context.read<ChannelProvider>().clearChannels();
       }
     });
   }
@@ -79,6 +94,67 @@ class _HomePageState extends State<HomePage> {
                     name,
                   );
                   if (mounted) {
+                    Navigator.pop(context);
+                  }
+                }
+              }
+            },
+            child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCreateChannelDialog() {
+    final nameController = TextEditingController();
+    final isPrivateController = ValueNotifier<bool>(false);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Create Channel'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'Channel Name',
+                hintText: 'Enter channel name',
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            ValueListenableBuilder(
+              valueListenable: isPrivateController,
+              builder: (context, isPrivate, _) => CheckboxListTile(
+                title: const Text('Private Channel'),
+                value: isPrivate,
+                onChanged: (value) => isPrivateController.value = value ?? false,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isNotEmpty) {
+                final authProvider = context.read<AuthProvider>();
+                final workspaceProvider = context.read<WorkspaceProvider>();
+                if (authProvider.accessToken != null && workspaceProvider.selectedWorkspace != null) {
+                  final channel = await context.read<ChannelProvider>().createChannel(
+                    authProvider.accessToken!,
+                    workspaceProvider.selectedWorkspace!.id,
+                    name,
+                    isPrivate: isPrivateController.value,
+                  );
+                  if (mounted && channel != null) {
                     Navigator.pop(context);
                   }
                 }
@@ -262,7 +338,7 @@ class _HomePageState extends State<HomePage> {
     final selectedWorkspace = context.watch<WorkspaceProvider>().selectedWorkspace;
     
     if (selectedWorkspace == null) {
-      return Container(); // Return empty container when no workspace is selected
+      return Container();
     }
 
     return Column(
@@ -310,18 +386,98 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+        ListTile(
+          leading: const Icon(Icons.add),
+          title: const Text('Add Channel'),
+          onTap: _showCreateChannelDialog,
+        ),
+        const Divider(),
         Expanded(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.tag),
-                title: const Text('# general'),
-                onTap: () {
-                  // Handle channel selection
+          child: Consumer<ChannelProvider>(
+            builder: (context, channelProvider, _) {
+              if (channelProvider.isLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (channelProvider.error != null) {
+                return Center(child: Text(channelProvider.error!));
+              }
+
+              if (channelProvider.channels.isEmpty) {
+                return const Center(
+                  child: Text('No channels yet'),
+                );
+              }
+
+              final workspaceChannels = channelProvider.getChannelsForWorkspace(selectedWorkspace.id);
+              
+              if (workspaceChannels.isEmpty) {
+                return const Center(
+                  child: Text('No channels in this workspace'),
+                );
+              }
+
+              return ListView.builder(
+                padding: EdgeInsets.zero,
+                itemCount: workspaceChannels.length,
+                itemBuilder: (context, index) {
+                  final channel = workspaceChannels[index];
+                  final isSelected = channel.id == channelProvider.selectedChannel?.id;
+                  
+                  return ListTile(
+                    leading: Icon(
+                      channel.isPrivate ? Icons.lock : Icons.tag,
+                      color: isSelected ? Colors.blue : null,
+                    ),
+                    title: Text(
+                      channel.name,
+                      style: TextStyle(
+                        color: isSelected ? Colors.blue : null,
+                        fontWeight: isSelected ? FontWeight.bold : null,
+                      ),
+                    ),
+                    selected: isSelected,
+                    onTap: () => channelProvider.selectChannel(channel),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.more_vert),
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          builder: (context) => SafeArea(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ListTile(
+                                  leading: const Icon(Icons.exit_to_app),
+                                  title: const Text('Leave Channel'),
+                                  onTap: () async {
+                                    Navigator.pop(context); // Close bottom sheet
+                                    final authProvider = context.read<AuthProvider>();
+                                    if (authProvider.accessToken != null) {
+                                      final success = await channelProvider.leaveChannel(
+                                        authProvider.accessToken!,
+                                        channel.id,
+                                      );
+                                      if (mounted && success) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Left ${channel.name}'),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
                 },
-              ),
-            ],
+              );
+            },
           ),
         ),
       ],
@@ -330,6 +486,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildChatArea() {
     final selectedWorkspace = context.watch<WorkspaceProvider>().selectedWorkspace;
+    final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
 
     if (selectedWorkspace == null) {
       return const Center(
@@ -415,6 +572,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context, constraints) {
         final bool isWideScreen = constraints.maxWidth > 600;
         final selectedWorkspace = context.watch<WorkspaceProvider>().selectedWorkspace;
+        final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
 
         // If no workspace is selected, show only the workspace list in full screen
         if (selectedWorkspace == null) {
@@ -462,7 +620,13 @@ class _HomePageState extends State<HomePage> {
                 // Chat area
                 Expanded(
                   child: Scaffold(
-                    appBar: AppBar(title: const Text('# general')),
+                    appBar: AppBar(
+                      title: Text(
+                        selectedChannel != null
+                          ? '${selectedChannel.isPrivate ? "🔒" : "#"} ${selectedChannel.name}'
+                          : 'No channel selected'
+                      ),
+                    ),
                     body: _buildChatArea(),
                   ),
                 ),

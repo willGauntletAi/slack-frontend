@@ -61,7 +61,6 @@ class _LoginPageState extends State<LoginPage> {
         });
       }
     } catch (e) {
-      print(e);
       setState(() {
         _errorMessage = 'Network error occurred';
       });

@@ -520,9 +520,6 @@
           "name": {
             "type": "string"
           },
-          "description": {
-            "type": "string"
-          },
           "is_private": {
             "type": "boolean"
           },
@@ -552,9 +549,6 @@
             "name": {
               "type": "string"
             },
-            "description": {
-              "type": "string"
-            },
             "is_private": {
               "type": "boolean"
             },
@@ -574,6 +568,44 @@
           ]
         }
       },
+      "ListUserChannelsResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "is_private": {
+              "type": "boolean"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "updated_at": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            },
+            "workspace_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "is_private",
+            "created_at",
+            "updated_at",
+            "workspace_id",
+            "workspace_name"
+          ]
+        }
+      },
       "UpdateChannelResponse": {
         "type": "object",
         "properties": {
@@ -581,9 +613,6 @@
             "type": "string"
           },
           "name": {
-            "type": "string"
-          },
-          "description": {
             "type": "string"
           },
           "is_private": {
@@ -1733,9 +1762,6 @@
                     "minLength": 1,
                     "maxLength": 100
                   },
-                  "description": {
-                    "type": "string"
-                  },
                   "is_private": {
                     "type": "boolean",
                     "default": false
@@ -1852,6 +1878,15 @@
               "type": "string"
             },
             "description": "Workspace ID"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search term to filter channels by name (case-insensitive)"
           }
         ],
         "responses": {
@@ -1922,6 +1957,60 @@
         }
       }
     },
+    "/channel/me": {
+      "get": {
+        "tags": [
+          "channels"
+        ],
+        "summary": "List all channels the user is a member of",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional workspace ID to filter channels"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of channels retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListUserChannelsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/channel/{id}": {
       "put": {
         "tags": [
@@ -1954,9 +2043,6 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 100
-                  },
-                  "description": {
-                    "type": "string"
                   },
                   "is_private": {
                     "type": "boolean"
@@ -2014,7 +2100,7 @@
             }
           },
           "403": {
-            "description": "Not authorized to update channel",
+            "description": "Not a member of the channel",
             "content": {
               "application/json": {
                 "schema": {
