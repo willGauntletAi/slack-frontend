@@ -49,11 +49,10 @@ class _RegisterPageState extends State<RegisterPage> {
           await context.read<AuthProvider>().setTokens(
             accessToken: data['accessToken'],
             refreshToken: data['refreshToken'],
+            userData: data['user'],
           );
           
           if (mounted) {
-            context.read<UserProvider>().setCurrentUser(data['user']);
-            
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Registration successful!')),
             );

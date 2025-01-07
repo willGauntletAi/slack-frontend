@@ -24,11 +24,32 @@
       "RegisterResponse": {
         "type": "object",
         "properties": {
-          "username": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "username": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string"
+              },
+              "created_at": {
+                "type": "string"
+              },
+              "updated_at": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "username",
+              "email",
+              "created_at",
+              "updated_at"
+            ]
           },
           "accessToken": {
             "type": "string"
@@ -38,8 +59,7 @@
           }
         },
         "required": [
-          "username",
-          "email",
+          "user",
           "accessToken",
           "refreshToken"
         ]
@@ -1887,6 +1907,15 @@
               "type": "string"
             },
             "description": "Search term to filter channels by name (case-insensitive)"
+          },
+          {
+            "name": "exclude_mine",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "If true, only returns channels the user is not a member of"
           }
         ],
         "responses": {

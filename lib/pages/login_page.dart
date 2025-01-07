@@ -49,12 +49,10 @@ class _LoginPageState extends State<LoginPage> {
           await context.read<AuthProvider>().setTokens(
             accessToken: data['accessToken'],
             refreshToken: data['refreshToken'],
+            userData: data['user'],
           );
           
           if (mounted) {
-            // Store user information
-            context.read<UserProvider>().setCurrentUser(data['user']);
-          
             Navigator.of(context).pushReplacementNamed('/home');
           }
         }

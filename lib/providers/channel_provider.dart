@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
+import 'workspace_provider.dart';
 
 class Channel {
   final String id;
@@ -9,8 +10,6 @@ class Channel {
   final bool isPrivate;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final String workspaceId;
-  final String workspaceName;
 
   Channel({
     required this.id,
@@ -18,8 +17,6 @@ class Channel {
     required this.isPrivate,
     required this.createdAt,
     required this.updatedAt,
-    required this.workspaceId,
-    required this.workspaceName,
   });
 
   factory Channel.fromJson(Map<String, dynamic> json) {
@@ -29,8 +26,6 @@ class Channel {
       isPrivate: json['is_private'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
-      workspaceId: json['workspace_id'],
-      workspaceName: json['workspace_name'],
     );
   }
 }
@@ -45,10 +40,6 @@ class ChannelProvider extends ChangeNotifier {
   Channel? get selectedChannel => _selectedChannel;
   bool get isLoading => _isLoading;
   String? get error => _error;
-
-  List<Channel> getChannelsForWorkspace(String workspaceId) {
-    return _channels.where((channel) => channel.workspaceId == workspaceId).toList();
-  }
 
   void selectChannel(Channel channel) {
     _selectedChannel = channel;
@@ -146,6 +137,65 @@ class ChannelProvider extends ChangeNotifier {
       }
     } catch (e) {
       _error = 'Network error occurred';
+      return false;
+    }
+  }
+
+  Future<List<Channel>> fetchPublicChannels(String accessToken, String workspaceId, {String? search}) async {
+    try {
+      var queryParams = 'exclude_mine=true';
+      if (search != null && search.isNotEmpty) {
+        queryParams += '&search=$search';
+      }
+      
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/channel/workspace/$workspaceId?$queryParams'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        return data.map((json) => Channel.fromJson(json)).toList();
+      } else {
+        final error = json.decode(response.body);
+        _error = error['error'] ?? 'Failed to fetch public channels';
+        return [];
+      }
+    } catch (e) {
+      _error = 'Network error occurred';
+      return [];
+    }
+  }
+
+  Future<bool> joinChannel(String accessToken, String channelId, String userId, String workspaceId) async {
+    try {
+      print('Joining channel: $channelId for user: $userId');
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/channel/$channelId/member/$userId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      print('Join channel response: ${response.statusCode} - ${response.body}');
+
+      if (response.statusCode == 200) {
+        // Refresh the channels list
+        await fetchChannels(accessToken, workspaceId);
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        _error = error['error'] ?? 'Failed to join channel';
+        print('Join channel error: $_error');
+        return false;
+      }
+    } catch (e) {
+      _error = 'Network error occurred: $e';
+      print('Join channel exception: $_error');
       return false;
     }
   }

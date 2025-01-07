@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/user_provider.dart';
+import 'dart:async';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,6 +16,30 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final _messageController = TextEditingController();
   final List<ChatMessage> _messages = []; // TODO: Replace with real messages
+  Timer? _debounce;
+
+  void _onSearchChanged(
+    String value,
+    ValueNotifier<bool> loadingNotifier,
+    ValueNotifier<List<Channel>> channelsNotifier,
+  ) {
+    if (_debounce?.isActive ?? false) _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      loadingNotifier.value = true;
+      
+      final authProvider = context.read<AuthProvider>();
+      final workspaceProvider = context.read<WorkspaceProvider>();
+      if (authProvider.accessToken != null && workspaceProvider.selectedWorkspace != null) {
+        final channels = await context.read<ChannelProvider>().fetchPublicChannels(
+          authProvider.accessToken!,
+          workspaceProvider.selectedWorkspace!.id,
+          search: value,
+        );
+        channelsNotifier.value = channels;
+        loadingNotifier.value = false;
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -45,6 +70,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _messageController.dispose();
+    _debounce?.cancel();
     super.dispose();
   }
 
@@ -162,6 +188,162 @@ class _HomePageState extends State<HomePage> {
               }
             },
             child: const Text('Create'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showJoinChannelDialog() {
+    final searchController = TextEditingController();
+    final searchNotifier = ValueNotifier<String>('');
+    final channelsNotifier = ValueNotifier<List<Channel>>([]);
+    final loadingNotifier = ValueNotifier<bool>(true);
+
+    // Initial channel fetch
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final authProvider = context.read<AuthProvider>();
+      final workspaceProvider = context.read<WorkspaceProvider>();
+      if (authProvider.accessToken != null && workspaceProvider.selectedWorkspace != null) {
+        final channels = await context.read<ChannelProvider>().fetchPublicChannels(
+          authProvider.accessToken!,
+          workspaceProvider.selectedWorkspace!.id,
+        );
+        channelsNotifier.value = channels;
+        loadingNotifier.value = false;
+      }
+    });
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Join Channel'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: searchController,
+                decoration: const InputDecoration(
+                  labelText: 'Search Channels',
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: (value) {
+                  searchNotifier.value = value;
+                  _onSearchChanged(value, loadingNotifier, channelsNotifier);
+                },
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ValueListenableBuilder(
+                  valueListenable: loadingNotifier,
+                  builder: (context, isLoading, _) {
+                    if (isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    return ValueListenableBuilder(
+                      valueListenable: channelsNotifier,
+                      builder: (context, channels, _) {
+                        if (channels.isEmpty) {
+                          return const Center(
+                            child: Text('No channels found'),
+                          );
+                        }
+
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: channels.length,
+                          itemBuilder: (context, index) {
+                            final channel = channels[index];
+                            final isAlreadyMember = context
+                                .read<ChannelProvider>()
+                                .channels
+                                .any((c) => c.id == channel.id);
+
+                            return ListTile(
+                              leading: Icon(channel.isPrivate ? Icons.lock : Icons.tag),
+                              title: Text(channel.name),
+                              trailing: isAlreadyMember
+                                ? const Icon(Icons.check, color: Colors.green)
+                                : TextButton(
+                                    child: const Text('Join'),
+                                    onPressed: () async {
+                                      final authProvider = context.read<AuthProvider>();
+                                      
+                                      if (authProvider.accessToken == null) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Unable to join channel: Not authenticated'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      
+                                      if (authProvider.currentUser == null) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Unable to join channel: User not found'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      
+                                      final workspaceProvider = context.read<WorkspaceProvider>();
+                                      if (workspaceProvider.selectedWorkspace == null) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          const SnackBar(
+                                            content: Text('Unable to join channel: No workspace selected'),
+                                            backgroundColor: Colors.red,
+                                          ),
+                                        );
+                                        return;
+                                      }
+
+                                      final success = await context.read<ChannelProvider>().joinChannel(
+                                        authProvider.accessToken!,
+                                        channel.id,
+                                        authProvider.currentUser!.id,
+                                        workspaceProvider.selectedWorkspace!.id,
+                                      );
+                                      
+                                      if (mounted) {
+                                        final error = context.read<ChannelProvider>().error;
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              success 
+                                                ? 'Joined ${channel.name}'
+                                                : error ?? 'Failed to join channel',
+                                            ),
+                                            backgroundColor: success ? Colors.green : Colors.red,
+                                          ),
+                                        );
+                                        
+                                        if (success) {
+                                          Navigator.pop(context);
+                                        }
+                                      }
+                                    },
+                                  ),
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -392,6 +574,11 @@ class _HomePageState extends State<HomePage> {
           title: const Text('Add Channel'),
           onTap: _showCreateChannelDialog,
         ),
+        ListTile(
+          leading: const Icon(Icons.group_add),
+          title: const Text('Join Channel'),
+          onTap: _showJoinChannelDialog,
+        ),
         const Divider(),
         Expanded(
           child: Consumer<ChannelProvider>(
@@ -410,19 +597,11 @@ class _HomePageState extends State<HomePage> {
                 );
               }
 
-              final workspaceChannels = channelProvider.getChannelsForWorkspace(selectedWorkspace.id);
-              
-              if (workspaceChannels.isEmpty) {
-                return const Center(
-                  child: Text('No channels in this workspace'),
-                );
-              }
-
               return ListView.builder(
                 padding: EdgeInsets.zero,
-                itemCount: workspaceChannels.length,
+                itemCount: channelProvider.channels.length,
                 itemBuilder: (context, index) {
-                  final channel = workspaceChannels[index];
+                  final channel = channelProvider.channels[index];
                   final isSelected = channel.id == channelProvider.selectedChannel?.id;
                   
                   return ListTile(
