@@ -94,7 +94,7 @@ class _HomePageState extends State<HomePage> {
                     authProvider.accessToken!,
                     name,
                   );
-                  if (mounted) {
+                  if (context.mounted) {
                     Navigator.pop(context);
                   }
                 }
@@ -155,7 +155,7 @@ class _HomePageState extends State<HomePage> {
                     name,
                     isPrivate: isPrivateController.value,
                   );
-                  if (mounted && channel != null) {
+                  if (context.mounted && channel != null) {
                     Navigator.pop(context);
                   }
                 }
@@ -462,7 +462,7 @@ class _HomePageState extends State<HomePage> {
                                         channel.id,
                                         userProvider.userId!,
                                       );
-                                      if (mounted) {
+                                      if (context.mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
                                           SnackBar(
                                             content: Text(

@@ -51,10 +51,10 @@ class _LoginPageState extends State<LoginPage> {
             refreshToken: data['refreshToken'],
           );
           
-          // Store user information
-          context.read<UserProvider>().setCurrentUser(data['user']);
-          
           if (mounted) {
+            // Store user information
+            context.read<UserProvider>().setCurrentUser(data['user']);
+          
             Navigator.of(context).pushReplacementNamed('/home');
           }
         }

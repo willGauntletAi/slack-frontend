@@ -51,13 +51,12 @@ class _RegisterPageState extends State<RegisterPage> {
             refreshToken: data['refreshToken'],
           );
           
-          context.read<UserProvider>().setCurrentUser(data['user']);
-          
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Registration successful!')),
-          );
-          
           if (mounted) {
+            context.read<UserProvider>().setCurrentUser(data['user']);
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Registration successful!')),
+            );
             Navigator.of(context).pushReplacementNamed('/home');
           }
         }
