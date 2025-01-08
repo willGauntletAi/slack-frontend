@@ -26,13 +26,22 @@ class _ChatAreaState extends State<ChatArea> {
     _channelProvider = context.read<ChannelProvider>();
     _messageProvider = context.read<MessageProvider>();
 
-    // Initial load of messages
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadInitialMessages();
-    });
-
     // Listen for channel changes
     _channelProvider.addListener(_onChannelChanged);
+    // Initial load of messages
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final channel = _channelProvider.selectedChannel;
+      final authProvider = context.read<AuthProvider>();
+      debugPrint('Initial load for channel: ${channel?.id}');
+      if (channel != null && authProvider.accessToken != null) {
+        _messageProvider.setCurrentChannel(channel.id);
+        _messageProvider.loadMessages(
+          authProvider.accessToken!,
+          channel.id,
+        );
+      }
+    });
+
   }
 
   void _onScroll() {
@@ -60,18 +69,6 @@ class _ChatAreaState extends State<ChatArea> {
       debugPrint('Channel changed to: ${channel.id}');
       // Clear existing messages and load new ones
       _messageProvider.setCurrentChannel(channel.id);
-      _messageProvider.loadMessages(
-        authProvider.accessToken!,
-        channel.id,
-      );
-    }
-  }
-
-  void _loadInitialMessages() {
-    final channel = _channelProvider.selectedChannel;
-    final authProvider = context.read<AuthProvider>();
-    
-    if (channel != null && authProvider.accessToken != null) {
       _messageProvider.loadMessages(
         authProvider.accessToken!,
         channel.id,
@@ -136,6 +133,7 @@ class _ChatAreaState extends State<ChatArea> {
     final selectedWorkspace = context.watch<WorkspaceProvider>().selectedWorkspace;
     final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
     final currentUser = context.watch<AuthProvider>().currentUser;
+    final messages = context.watch<MessageProvider>().messages;
 
     if (selectedWorkspace == null) {
       return const Center(
@@ -304,13 +302,13 @@ class _ChatAreaState extends State<ChatArea> {
                 controller: _scrollController,
                 reverse: true,
                 padding: const EdgeInsets.all(8.0),
-                itemCount: messageProvider.messages.length + (messageProvider.isLoading ? 1 : 0),
+                itemCount: messages.length + (messageProvider.isLoading ? 1 : 0),
                 itemBuilder: (context, index) {
-                  if (messageProvider.isLoading && index == messageProvider.messages.length) {
+                  if (messageProvider.isLoading && index == messages.length) {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final message = messageProvider.messages[index];
+                  final message = messages[index];
                   final isMe = message.userId == currentUser?.id;
 
                   return ChatMessage(

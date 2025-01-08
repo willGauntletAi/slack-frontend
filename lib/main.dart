@@ -17,7 +17,7 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final authService = AuthService(prefs);
   
-  runApp(
+runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
@@ -35,10 +35,11 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => WebSocketProvider(),
         ),
-        ChangeNotifierProxyProvider<WebSocketProvider, MessageProvider>(
-          create: (context) => MessageProvider(context.read<WebSocketProvider>()),
-          update: (context, webSocketProvider, previous) =>
-            previous ?? MessageProvider(webSocketProvider),
+        ChangeNotifierProvider(
+          create: (context) => MessageProvider(
+            context.read<WebSocketProvider>(),
+            context.read<ChannelProvider>(),
+          ),
         ),
       ],
       child: const MainApp(),

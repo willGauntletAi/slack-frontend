@@ -41,13 +41,16 @@ class ChannelProvider extends ChangeNotifier {
   String? get error => _error;
 
   void selectChannel(Channel channel) {
-    _selectedChannel = channel;
-    notifyListeners();
+    if (_selectedChannel?.id != channel.id) {
+      _selectedChannel = channel;
+      notifyListeners();
+    }
   }
 
   Future<void> fetchChannels(String accessToken, String workspaceId) async {
     _isLoading = true;
     _error = null;
+    _selectedChannel = null;
     notifyListeners();
 
     try {
@@ -64,8 +67,12 @@ class ChannelProvider extends ChangeNotifier {
         _channels = data.map((json) => Channel.fromJson(json)).toList();
         
         // Select the first channel by default if none is selected
-        if (_selectedChannel == null && _channels.isNotEmpty) {
-          _selectedChannel = _channels.first;
+        if (_channels.isNotEmpty) {
+          // Always select first channel to ensure proper initialization
+          selectChannel(_channels.first);
+        } else {
+          _selectedChannel = null;
+          notifyListeners();
         }
       } else {
         final error = json.decode(response.body);

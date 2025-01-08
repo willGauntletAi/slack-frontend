@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:slack_frontend/providers/channel_provider.dart';
 import 'dart:convert';
 import 'dart:async';
 import '../config/api_config.dart';
@@ -42,6 +43,7 @@ class Message {
 
 class MessageProvider with ChangeNotifier {
   final WebSocketProvider webSocketProvider;
+  final ChannelProvider channelProvider;
   // Map of channelId to list of messages
   final Map<String, List<Message>> _channelMessages = {};
   // Map of channelId to loading state
@@ -52,10 +54,10 @@ class MessageProvider with ChangeNotifier {
   final Map<String, String?> _channelLastMessageIds = {};
   // Map of channelId to hasMore state
   final Map<String, bool> _channelHasMore = {};
-  String? _currentChannelId;
+  String? get _currentChannelId => channelProvider.selectedChannel?.id;
   StreamSubscription? _messageSubscription;
 
-  MessageProvider(this.webSocketProvider) {
+  MessageProvider(this.webSocketProvider, this.channelProvider) {
     _messageSubscription = webSocketProvider.messageStream.listen(_handleWebSocketMessage);
   }
 
@@ -127,7 +129,6 @@ class MessageProvider with ChangeNotifier {
 
   void setCurrentChannel(String channelId) {
     debugPrint('Setting current channel to: $channelId');
-    _currentChannelId = channelId;
     // Initialize channel state if needed
     if (!_channelMessages.containsKey(channelId)) {
       debugPrint('Initializing new channel state for: $channelId');
@@ -181,6 +182,7 @@ class MessageProvider with ChangeNotifier {
           channelMessages.addAll(newMessages);
           _channelMessages[channelId] = channelMessages;
           _channelLastMessageIds[channelId] = newMessages.last.id;
+          notifyListeners();
           debugPrint('Updated channel messages count: ${channelMessages.length}');
         }
         
@@ -205,9 +207,6 @@ class MessageProvider with ChangeNotifier {
     _channelErrors.remove(channelId);
     _channelLastMessageIds.remove(channelId);
     _channelHasMore.remove(channelId);
-    if (_currentChannelId == channelId) {
-      _currentChannelId = null;
-    }
     notifyListeners();
   }
 
@@ -217,7 +216,6 @@ class MessageProvider with ChangeNotifier {
     _channelErrors.clear();
     _channelLastMessageIds.clear();
     _channelHasMore.clear();
-    _currentChannelId = null;
     notifyListeners();
   }
 

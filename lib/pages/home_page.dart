@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
               );
             }
           }
-          
+
           // Then fetch workspaces
           if (mounted) {
             await _workspaceProvider.fetchWorkspaces(authProvider.accessToken!);
@@ -62,13 +62,15 @@ class _HomePageState extends State<HomePage> {
         try {
           // Fetch channels for the workspace
           await context.read<ChannelProvider>().fetchChannels(
-            authProvider.accessToken!,
-            workspace.id,
-          );
-          
+                authProvider.accessToken!,
+                workspace.id,
+              );
+
           // Subscribe to the workspace's real-time updates
           if (mounted) {
-            context.read<WebSocketProvider>().subscribeToWorkspace(workspace.id);
+            context
+                .read<WebSocketProvider>()
+                .subscribeToWorkspace(workspace.id);
             // Clear message state for the new workspace
             context.read<MessageProvider>().clearAllChannels();
           }
@@ -124,9 +126,9 @@ class _HomePageState extends State<HomePage> {
                 final authProvider = context.read<AuthProvider>();
                 if (authProvider.accessToken != null) {
                   await context.read<WorkspaceProvider>().createWorkspace(
-                    authProvider.accessToken!,
-                    name,
-                  );
+                        authProvider.accessToken!,
+                        name,
+                      );
                   if (context.mounted) {
                     Navigator.pop(context);
                   }
@@ -165,7 +167,8 @@ class _HomePageState extends State<HomePage> {
               builder: (context, isPrivate, _) => CheckboxListTile(
                 title: const Text('Private Channel'),
                 value: isPrivate,
-                onChanged: (value) => isPrivateController.value = value ?? false,
+                onChanged: (value) =>
+                    isPrivateController.value = value ?? false,
               ),
             ),
           ],
@@ -181,13 +184,15 @@ class _HomePageState extends State<HomePage> {
               if (name.isNotEmpty) {
                 final authProvider = context.read<AuthProvider>();
                 final workspaceProvider = context.read<WorkspaceProvider>();
-                if (authProvider.accessToken != null && workspaceProvider.selectedWorkspace != null) {
-                  final channel = await context.read<ChannelProvider>().createChannel(
-                    authProvider.accessToken!,
-                    workspaceProvider.selectedWorkspace!.id,
-                    name,
-                    isPrivate: isPrivateController.value,
-                  );
+                if (authProvider.accessToken != null &&
+                    workspaceProvider.selectedWorkspace != null) {
+                  final channel =
+                      await context.read<ChannelProvider>().createChannel(
+                            authProvider.accessToken!,
+                            workspaceProvider.selectedWorkspace!.id,
+                            name,
+                            isPrivate: isPrivateController.value,
+                          );
                   if (context.mounted && channel != null) {
                     Navigator.pop(context);
                   }
@@ -212,11 +217,12 @@ class _HomePageState extends State<HomePage> {
             future: () async {
               final authProvider = context.read<AuthProvider>();
               final workspaceProvider = context.read<WorkspaceProvider>();
-              if (authProvider.accessToken != null && workspaceProvider.selectedWorkspace != null) {
+              if (authProvider.accessToken != null &&
+                  workspaceProvider.selectedWorkspace != null) {
                 return context.read<ChannelProvider>().fetchPublicChannels(
-                  authProvider.accessToken!,
-                  workspaceProvider.selectedWorkspace!.id,
-                );
+                      authProvider.accessToken!,
+                      workspaceProvider.selectedWorkspace!.id,
+                    );
               }
               return [];
             }(),
@@ -231,7 +237,8 @@ class _HomePageState extends State<HomePage> {
 
               final channels = snapshot.data ?? [];
               if (channels.isEmpty) {
-                return const Center(child: Text('No channels available to join'));
+                return const Center(
+                    child: Text('No channels available to join'));
               }
 
               return ListView.builder(
@@ -246,21 +253,24 @@ class _HomePageState extends State<HomePage> {
                       child: const Text('Join'),
                       onPressed: () async {
                         final authProvider = context.read<AuthProvider>();
-                        if (authProvider.accessToken == null || authProvider.currentUser == null) {
+                        if (authProvider.accessToken == null ||
+                            authProvider.currentUser == null) {
                           return;
                         }
 
-                        final workspaceProvider = context.read<WorkspaceProvider>();
+                        final workspaceProvider =
+                            context.read<WorkspaceProvider>();
                         if (workspaceProvider.selectedWorkspace == null) {
                           return;
                         }
 
-                        final success = await context.read<ChannelProvider>().joinChannel(
-                          authProvider.accessToken!,
-                          channel.id,
-                          authProvider.currentUser!.id,
-                          workspaceProvider.selectedWorkspace!.id,
-                        );
+                        final success =
+                            await context.read<ChannelProvider>().joinChannel(
+                                  authProvider.accessToken!,
+                                  channel.id,
+                                  authProvider.currentUser!.id,
+                                  workspaceProvider.selectedWorkspace!.id,
+                                );
 
                         if (context.mounted) {
                           Navigator.pop(context);
@@ -268,10 +278,12 @@ class _HomePageState extends State<HomePage> {
                             SnackBar(
                               content: Text(
                                 success
-                                  ? 'Joined ${channel.name}'
-                                  : context.read<ChannelProvider>().error ?? 'Failed to join channel',
+                                    ? 'Joined ${channel.name}'
+                                    : context.read<ChannelProvider>().error ??
+                                        'Failed to join channel',
                               ),
-                              backgroundColor: success ? Colors.green : Colors.red,
+                              backgroundColor:
+                                  success ? Colors.green : Colors.red,
                             ),
                           );
                         }
@@ -325,7 +337,7 @@ class _HomePageState extends State<HomePage> {
 
               final authProvider = context.read<AuthProvider>();
               final workspaceProvider = context.read<WorkspaceProvider>();
-              
+
               if (authProvider.accessToken == null) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -362,8 +374,9 @@ class _HomePageState extends State<HomePage> {
                   SnackBar(
                     content: Text(
                       success
-                        ? 'Invitation sent to $email'
-                        : workspaceProvider.error ?? 'Failed to send invitation',
+                          ? 'Invitation sent to $email'
+                          : workspaceProvider.error ??
+                              'Failed to send invitation',
                     ),
                     backgroundColor: success ? Colors.green : Colors.red,
                   ),
@@ -382,13 +395,16 @@ class _HomePageState extends State<HomePage> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final bool isWideScreen = constraints.maxWidth > 600;
-        final selectedWorkspace = context.watch<WorkspaceProvider>().selectedWorkspace;
-        final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
+        final selectedWorkspace =
+            context.watch<WorkspaceProvider>().selectedWorkspace;
+        final selectedChannel =
+            context.watch<ChannelProvider>().selectedChannel;
 
         // If no workspace is selected, show only the workspace list in full screen
         if (selectedWorkspace == null) {
           return Scaffold(
-            appBar: isWideScreen ? null : AppBar(title: const Text('Workspaces')),
+            appBar:
+                isWideScreen ? null : AppBar(title: const Text('Workspaces')),
             body: Container(
               color: Colors.grey[200],
               child: Center(
@@ -437,29 +453,28 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const VerticalDivider(width: 1),
                 // Chat area
-                Expanded(
-                  child: Scaffold(
-                    appBar: AppBar(
-                      title: Text(
-                        selectedChannel != null
-                          ? '${selectedChannel.isPrivate ? "🔒" : "#"} ${selectedChannel.name}'
-                          : 'No channel selected'
+                if (selectedChannel != null)
+                  Expanded(
+                    child: Scaffold(
+                      appBar: AppBar(
+                        title: Text(
+                            '${selectedChannel.isPrivate ? "🔒" : "#"} ${selectedChannel.name}'),
                       ),
+                      body: const ChatArea(),
                     ),
-                    body: const ChatArea(),
                   ),
-                ),
+                if (selectedChannel == null)
+                  const Expanded(
+                      child: Center(child: Text('No channel selected'))),
               ],
             ),
           );
         } else {
           return Scaffold(
             appBar: AppBar(
-              title: Text(
-                selectedChannel != null
+              title: Text(selectedChannel != null
                   ? '${selectedChannel.isPrivate ? "🔒" : "#"} ${selectedChannel.name}'
-                  : 'No channel selected'
-              ),
+                  : 'No channel selected'),
             ),
             drawer: Drawer(
               child: Row(
