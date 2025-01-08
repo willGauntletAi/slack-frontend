@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:slack_frontend/widgets/workspace_header.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/message_provider.dart';
 import '../providers/websocket_provider.dart';
+import '../providers/dm_provider.dart';
 import '../widgets/workspace_list.dart';
 import '../widgets/channel_list.dart';
 import '../widgets/chat_area.dart';
+import '../widgets/dm_list.dart';
+import '../widgets/dm_chat_area.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -381,112 +385,55 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _showCreateDmChannelDialog() {
+    // TODO: Implement DM channel creation
+  }
+
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isWideScreen = constraints.maxWidth > 600;
-        final selectedWorkspace =
-            context.watch<WorkspaceProvider>().selectedWorkspace;
-        final selectedChannel =
-            context.watch<ChannelProvider>().selectedChannel;
+    final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
+    final selectedDMChannel = context.watch<DMProvider>().selectedChannel;
 
-        // If no workspace is selected, show only the workspace list in full screen
-        if (selectedWorkspace == null) {
-          return Scaffold(
-            appBar:
-                isWideScreen ? null : AppBar(title: const Text('Workspaces')),
-            body: Container(
-              color: Colors.grey[200],
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxWidth: isWideScreen ? 400 : double.infinity,
-                  ),
-                  child: WorkspaceList(
-                    onCreateWorkspace: _showCreateWorkspaceDialog,
-                  ),
-                ),
-              ),
-            ),
-          );
-        }
-
-        // Regular layout when a workspace is selected
-        if (isWideScreen) {
-          return Scaffold(
-            body: Row(
-              children: [
-                // Workspace list
-                Container(
-                  width: 65,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[200],
-                    border: Border(
-                      right: BorderSide(
-                        color: Theme.of(context).dividerColor,
-                      ),
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: WorkspaceList(
-                    onCreateWorkspace: _showCreateWorkspaceDialog,
-                  ),
-                ),
-                // Channel list
-                SizedBox(
-                  width: 240,
-                  child: ChannelList(
-                    onCreateChannel: _showCreateChannelDialog,
-                    onJoinChannel: _showJoinChannelDialog,
-                    onInviteUser: _showInviteDialog,
-                  ),
-                ),
-                const VerticalDivider(width: 1),
-                // Chat area
-                if (selectedChannel != null)
-                  Expanded(
-                    child: Scaffold(
-                      appBar: AppBar(
-                        title: Text(
-                            '${selectedChannel.isPrivate ? "🔒" : "#"} ${selectedChannel.name}'),
-                      ),
-                      body: const ChatArea(),
-                    ),
-                  ),
-                if (selectedChannel == null)
-                  const Expanded(
-                      child: Center(child: Text('No channel selected'))),
-              ],
-            ),
-          );
-        } else {
-          return Scaffold(
-            appBar: AppBar(
-              title: Text(selectedChannel != null
-                  ? '${selectedChannel.isPrivate ? "🔒" : "#"} ${selectedChannel.name}'
-                  : 'No channel selected'),
-            ),
-            drawer: Drawer(
-              child: Row(
+    return Scaffold(
+      body: Row(
+        children: [
+          // Workspace list
+          SizedBox(
+            width: 80,
+            child: Material(
+              elevation: 2,
+              child: Column(
                 children: [
-                  // Workspace list
-                  Container(
-                    width: 65,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      border: Border(
-                        right: BorderSide(
-                          color: Theme.of(context).dividerColor,
-                        ),
-                      ),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                  Expanded(
                     child: WorkspaceList(
                       onCreateWorkspace: _showCreateWorkspaceDialog,
                     ),
                   ),
-                  // Channel list
+                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+          ),
+          // Channel list and DM list
+          SizedBox(
+            width: 250,
+            child: Material(
+              elevation: 1,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  WorkspaceHeader(onInviteUser: _showInviteDialog),
+                  // Channels section
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      'Channels',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
                   Expanded(
                     child: ChannelList(
                       onCreateChannel: _showCreateChannelDialog,
@@ -494,13 +441,38 @@ class _HomePageState extends State<HomePage> {
                       onInviteUser: _showInviteDialog,
                     ),
                   ),
+                  // Direct Messages section
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      'Direct Messages',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: DMList(
+                      onCreateDmChannel: _showCreateDmChannelDialog,
+                    ),
+                  ),
                 ],
               ),
             ),
-            body: const ChatArea(),
-          );
-        }
-      },
+          ),
+          // Chat area
+          Expanded(
+            child: selectedChannel != null
+                ? const ChatArea()
+                : selectedDMChannel != null
+                    ? const DMChatArea()
+                    : const Center(
+                        child: Text('Select a channel or conversation'),
+                      ),
+          ),
+        ],
+      ),
     );
   }
 }

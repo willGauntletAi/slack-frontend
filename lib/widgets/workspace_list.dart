@@ -85,8 +85,8 @@ class WorkspaceList extends StatelessWidget {
               ),
               const Spacer(),
               Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: TextButton.icon(
+                padding: const EdgeInsets.all(8.0),
+                child: IconButton(
                   onPressed: () async {
                     await context.read<AuthProvider>().logout();
                     if (context.mounted) {
@@ -94,10 +94,8 @@ class WorkspaceList extends StatelessWidget {
                     }
                   },
                   icon: const Icon(Icons.logout),
-                  label: const Text('Logout'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.red,
-                  ),
+                  color: Colors.red,
+                  tooltip: 'Logout',
                 ),
               ),
             ],
@@ -147,8 +145,8 @@ class WorkspaceList extends StatelessWidget {
                                 workspaceProvider.selectWorkspace(workspace),
                             customBorder: const CircleBorder(),
                             child: Container(
-                              width: isFullScreen ? 64 : 40,
-                              height: isFullScreen ? 64 : 40,
+                              width: isFullScreen ? 64 : 48,
+                              height: isFullScreen ? 64 : 48,
                               alignment: Alignment.center,
                               child: Text(
                                 workspace.name[0].toUpperCase(),
@@ -156,7 +154,7 @@ class WorkspaceList extends StatelessWidget {
                                   color:
                                       isSelected ? Colors.white : Colors.black,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: isFullScreen ? 24 : 16,
+                                  fontSize: isFullScreen ? 24 : 20,
                                 ),
                               ),
                             ),
@@ -202,8 +200,8 @@ class WorkspaceList extends StatelessWidget {
                   onTap: onCreateWorkspace,
                   customBorder: const CircleBorder(),
                   child: Container(
-                    width: isFullScreen ? 64 : 40,
-                    height: isFullScreen ? 64 : 40,
+                    width: isFullScreen ? 64 : 48,
+                    height: isFullScreen ? 64 : 48,
                     alignment: Alignment.center,
                     child: Icon(
                       Icons.add,

@@ -32,10 +32,6 @@ class WebSocketProvider with ChangeNotifier {
     await _webSocketService.connect(token);
   }
 
-  void sendMessage(String channelId, String content) {
-    _webSocketService.sendMessage(channelId, content);
-  }
-
   void sendTypingIndicator(String channelId, bool isDm) {
     _webSocketService.sendTypingIndicator(channelId, isDm);
   }

@@ -90,21 +90,6 @@ class WebSocketService {
     });
   }
 
-  void sendMessage(String channelId, String content) {
-    if (!_isConnected) return;
-
-    final message = {
-      'type': 'new_message',
-      'channelId': channelId,
-      'content': content,
-    };
-    try {
-      _channel?.sink.add(jsonEncode(message));
-    } catch (e) {
-      _handleDisconnect('Send error: $e');
-    }
-  }
-
   void sendTypingIndicator(String channelId, bool isDm) {
     debugPrint('Sending typing indicator for channel: $channelId, isDm: $isDm');
     if (!_isConnected) return;
