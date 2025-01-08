@@ -170,7 +170,7 @@ class _DMChatAreaState extends State<DMChatArea> {
             },
           ),
         ),
-        if (selectedChannel != null && currentUser != null)
+        if (currentUser != null)
           Consumer<TypingIndicatorProvider>(
             builder: (context, typingProvider, _) {
               final typingUsers = typingProvider.getTypingUsernames(
