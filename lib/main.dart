@@ -34,18 +34,18 @@ void main() async {
           create: (_) => ChannelProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => TypingIndicatorProvider(),
+          create: (_) => WebSocketProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => TypingIndicatorProvider(
+            context.read<WebSocketProvider>(),
+          ),
         ),
         ChangeNotifierProvider(
           create: (context) => MessageProvider(
             context.read<ChannelProvider>(),
             context.read<AuthProvider>(),
-          ),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => WebSocketProvider(
-            context.read<TypingIndicatorProvider>(),
-            context.read<MessageProvider>(),
+            context.read<WebSocketProvider>(),
           ),
         ),
       ],

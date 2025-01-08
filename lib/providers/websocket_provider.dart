@@ -1,49 +1,26 @@
 import 'package:flutter/foundation.dart';
 import '../services/websocket_service.dart';
-import 'typing_indicator_provider.dart';
-import 'message_provider.dart';
 
 class WebSocketProvider with ChangeNotifier {
   final WebSocketService _webSocketService = WebSocketService();
-  final TypingIndicatorProvider _typingIndicatorProvider;
-  final MessageProvider _messageProvider;
   bool get isConnected => _webSocketService.isConnected;
 
-  WebSocketProvider(this._typingIndicatorProvider, this._messageProvider) {
+  WebSocketProvider() {
     _webSocketService.messageStream.listen(_handleWebSocketMessage);
   }
 
   void _handleWebSocketMessage(Map<String, dynamic> data) {
     if (data['type'] == null) {
-      debugPrint('WebSocket message received: $data');
+      debugPrint('WebSocket message received without type: $data');
       return;
     }
     debugPrint('WebSocket message received: $data');
+
+    // Only handle connection state changes here
     switch (data['type']) {
-      case 'typing':
-        _typingIndicatorProvider.userStartedTyping(
-          data['channelId'],
-          data['userId'],
-          data['username'],
-        );
-        break;
-
-      case 'new_message':
-        debugPrint('Handling new message event');
-        final messageData = data['message'] as Map<String, dynamic>;
-        messageData['channel_id'] = data['channelId'];
-        _messageProvider.handleNewMessage(messageData);
-        break;
-
-      case 'message_updated':
-        _messageProvider.handleUpdatedMessage(data['message']);
-        break;
-
-      case 'message_deleted':
-        _messageProvider.handleDeletedMessage(
-          data['messageId'],
-          data['channelId'],
-        );
+      case 'connection_success':
+      case 'connection_closed':
+        notifyListeners();
         break;
     }
   }

@@ -1,15 +1,31 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'websocket_provider.dart';
 
 class TypingIndicatorProvider with ChangeNotifier {
   // Map of channelId to Map of userId to (username, timestamp) pair
   final Map<String, Map<String, (String, DateTime)>> _typingUsers = {};
   Timer? _cleanupTimer;
+  StreamSubscription? _wsSubscription;
   static const _typingTimeout = Duration(seconds: 6);
+  final WebSocketProvider _wsProvider;
 
-  TypingIndicatorProvider() {
+  TypingIndicatorProvider(this._wsProvider) {
     _cleanupTimer =
         Timer.periodic(const Duration(seconds: 1), (_) => _cleanup());
+    _setupWebSocketListener();
+  }
+
+  void _setupWebSocketListener() {
+    _wsSubscription = _wsProvider.messageStream.listen((data) {
+      if (data['type'] == 'typing') {
+        userStartedTyping(
+          data['channelId'],
+          data['userId'],
+          data['username'],
+        );
+      }
+    });
   }
 
   void userStartedTyping(String channelId, String userId, String username) {
@@ -61,6 +77,7 @@ class TypingIndicatorProvider with ChangeNotifier {
   @override
   void dispose() {
     _cleanupTimer?.cancel();
+    _wsSubscription?.cancel();
     _typingUsers.clear();
     super.dispose();
   }

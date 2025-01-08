@@ -48,6 +48,10 @@ class WebSocketService {
             if (!(_connectionCompleter?.isCompleted ?? true)) {
               _connectionCompleter?.complete();
             }
+            _messageController.add({
+              'type': 'connection_success',
+              'timestamp': DateTime.now().toIso8601String(),
+            });
           }
 
           _messageController.add(data);
@@ -77,6 +81,13 @@ class WebSocketService {
     _connectionCompleter = null;
     _channel?.sink.close();
     _channel = null;
+
+    // Emit connection closed event
+    _messageController.add({
+      'type': 'connection_closed',
+      'reason': reason,
+      'timestamp': DateTime.now().toIso8601String(),
+    });
   }
 
   void sendMessage(String channelId, String content) {
