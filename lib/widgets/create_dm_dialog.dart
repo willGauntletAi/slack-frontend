@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:slack_frontend/providers/channel_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/dm_provider.dart';
@@ -117,7 +118,12 @@ class _CreateDMDialogState extends State<CreateDMDialog> {
 
                       final allUsers = provider.getWorkspaceUsers(workspaceId);
                       final searchTerm = searchController.text.toLowerCase();
+                      final currentUserId =
+                          context.read<AuthProvider>().currentUser?.id;
                       final filteredUsers = allUsers.where((user) {
+                        // Filter out the current user
+                        if (user.id == currentUserId) return false;
+
                         return user.username
                                 .toLowerCase()
                                 .contains(searchTerm) ||
@@ -199,6 +205,7 @@ class _CreateDMDialogState extends State<CreateDMDialog> {
                       if (context.mounted) {
                         Navigator.pop(context);
                         if (channel != null) {
+                          context.read<ChannelProvider>().selectChannel(null);
                           dmProvider.selectChannel(channel);
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(

@@ -40,8 +40,8 @@ class ChannelProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
 
-  void selectChannel(Channel channel) {
-    if (_selectedChannel?.id != channel.id) {
+  void selectChannel(Channel? channel) {
+    if (_selectedChannel?.id != channel?.id) {
       _selectedChannel = channel;
       notifyListeners();
     }
