@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:slack_frontend/providers/auth_provider.dart';
 import 'package:slack_frontend/providers/channel_provider.dart';
 import 'dart:convert';
 import 'dart:async';
@@ -44,6 +45,7 @@ class Message {
 class MessageProvider with ChangeNotifier {
   final WebSocketProvider webSocketProvider;
   final ChannelProvider channelProvider;
+  final AuthProvider authProvider;
   // Map of channelId to list of messages
   final Map<String, List<Message>> _channelMessages = {};
   // Map of channelId to loading state
@@ -57,15 +59,30 @@ class MessageProvider with ChangeNotifier {
   String? get _currentChannelId => channelProvider.selectedChannel?.id;
   StreamSubscription? _messageSubscription;
 
-  MessageProvider(this.webSocketProvider, this.channelProvider) {
+  MessageProvider(
+      this.webSocketProvider, this.channelProvider, this.authProvider) {
     _messageSubscription =
         webSocketProvider.messageStream.listen(_handleWebSocketMessage);
+    channelProvider.addListener(_handleChannelChange);
   }
 
   List<Message> get messages => _channelMessages[_currentChannelId] ?? [];
   bool get isLoading => _channelLoading[_currentChannelId] ?? false;
   String? get error => _channelErrors[_currentChannelId];
   bool get hasMore => _channelHasMore[_currentChannelId] ?? true;
+
+  void _handleChannelChange() async {
+    if (!_channelMessages.containsKey(_currentChannelId)) {
+      if (authProvider.accessToken != null &&
+          channelProvider.selectedChannel != null) {
+        final channelId = channelProvider.selectedChannel!.id;
+        _channelLoading[channelId] = false;
+        _channelHasMore[channelId] = true;
+        await loadMessages(authProvider.accessToken!, channelId);
+      }
+    }
+    notifyListeners();
+  }
 
   void _handleWebSocketMessage(Map<String, dynamic> message) {
     switch (message['type']) {
@@ -326,6 +343,7 @@ class MessageProvider with ChangeNotifier {
   @override
   void dispose() {
     _messageSubscription?.cancel();
+    channelProvider.removeListener(_handleChannelChange);
     super.dispose();
   }
 }

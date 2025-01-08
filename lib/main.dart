@@ -39,6 +39,7 @@ void main() async {
           create: (context) => MessageProvider(
             context.read<WebSocketProvider>(),
             context.read<ChannelProvider>(),
+            context.read<AuthProvider>(),
           ),
         ),
       ],

@@ -25,22 +25,6 @@ class _ChatAreaState extends State<ChatArea> {
     _scrollController.addListener(_onScroll);
     _channelProvider = context.read<ChannelProvider>();
     _messageProvider = context.read<MessageProvider>();
-
-    // Listen for channel changes
-    _channelProvider.addListener(_onChannelChanged);
-    // Initial load of messages
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final channel = _channelProvider.selectedChannel;
-      final authProvider = context.read<AuthProvider>();
-      debugPrint('Initial load for channel: ${channel?.id}');
-      if (channel != null && authProvider.accessToken != null) {
-        _messageProvider.setCurrentChannel(channel.id);
-        _messageProvider.loadMessages(
-          authProvider.accessToken!,
-          channel.id,
-        );
-      }
-    });
   }
 
   void _onScroll() {
@@ -61,26 +45,10 @@ class _ChatAreaState extends State<ChatArea> {
     }
   }
 
-  void _onChannelChanged() {
-    final channel = _channelProvider.selectedChannel;
-    final authProvider = context.read<AuthProvider>();
-
-    if (channel != null && authProvider.accessToken != null) {
-      debugPrint('Channel changed to: ${channel.id}');
-      // Clear existing messages and load new ones
-      _messageProvider.setCurrentChannel(channel.id);
-      _messageProvider.loadMessages(
-        authProvider.accessToken!,
-        channel.id,
-      );
-    }
-  }
-
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
-    _channelProvider.removeListener(_onChannelChanged);
     super.dispose();
   }
 
