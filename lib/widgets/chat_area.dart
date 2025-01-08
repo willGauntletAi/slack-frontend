@@ -22,7 +22,8 @@ class _ChatAreaState extends State<ChatArea> {
   late final ChannelProvider _channelProvider;
   late final MessageProvider _messageProvider;
   DateTime? _lastTypingIndicatorSent;
-  static const _typingThrottleDuration = Duration(seconds: 5);
+  bool _isSubmittingMessage = false;
+  static const _typingThrottleDuration = Duration(milliseconds: 1000);
 
   @override
   void initState() {
@@ -34,6 +35,8 @@ class _ChatAreaState extends State<ChatArea> {
   }
 
   void _onTextChanged() {
+    if (_isSubmittingMessage) return;
+
     final channel = _channelProvider.selectedChannel;
     if (channel == null) return;
 
@@ -74,6 +77,9 @@ class _ChatAreaState extends State<ChatArea> {
   Future<void> _handleSubmitted(String text) async {
     if (text.trim().isEmpty) return;
 
+    _isSubmittingMessage = true;
+    _messageController.clear();
+
     final authProvider = context.read<AuthProvider>();
     final channel = context.read<ChannelProvider>().selectedChannel;
 
@@ -84,6 +90,7 @@ class _ChatAreaState extends State<ChatArea> {
           backgroundColor: Colors.red,
         ),
       );
+      _isSubmittingMessage = false;
       return;
     }
 
@@ -94,16 +101,17 @@ class _ChatAreaState extends State<ChatArea> {
           backgroundColor: Colors.red,
         ),
       );
+      _isSubmittingMessage = false;
       return;
     }
-
-    _messageController.clear();
 
     final message = await _messageProvider.sendMessage(
       authProvider.accessToken!,
       channel.id,
       text,
     );
+
+    _isSubmittingMessage = false;
 
     if (message == null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

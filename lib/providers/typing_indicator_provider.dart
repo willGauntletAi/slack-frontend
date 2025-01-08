@@ -7,7 +7,7 @@ class TypingIndicatorProvider with ChangeNotifier {
   final Map<String, Map<String, (String, DateTime)>> _typingUsers = {};
   Timer? _cleanupTimer;
   StreamSubscription? _wsSubscription;
-  static const _typingTimeout = Duration(seconds: 6);
+  static const _typingTimeout = Duration(seconds: 1);
   final WebSocketProvider _wsProvider;
 
   TypingIndicatorProvider(this._wsProvider) {
@@ -18,6 +18,7 @@ class TypingIndicatorProvider with ChangeNotifier {
 
   void _setupWebSocketListener() {
     _wsSubscription = _wsProvider.messageStream.listen((data) {
+      debugPrint('typing message received: $data');
       if (data['type'] == 'typing') {
         userStartedTyping(
           data['channelId'],
@@ -39,12 +40,15 @@ class TypingIndicatorProvider with ChangeNotifier {
     if (typingInChannel == null) return [];
 
     final now = DateTime.now();
-    return typingInChannel.entries
+    final result = typingInChannel.entries
         .where((entry) =>
             entry.key != currentUserId &&
             now.difference(entry.value.$2) < _typingTimeout)
         .map((entry) => entry.value.$1)
         .toList();
+    debugPrint('typingInChannel: $typingInChannel');
+    debugPrint('result: $result');
+    return result;
   }
 
   void _cleanup() {
