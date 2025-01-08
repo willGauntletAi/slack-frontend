@@ -70,6 +70,14 @@ class _HomePageState extends State<HomePage> {
                 authProvider.accessToken!,
                 workspace.id,
               );
+
+          // Fetch DM channels for the workspace
+          if (mounted) {
+            await context.read<DMProvider>().fetchDMChannels(
+                  authProvider.accessToken!,
+                  workspace.id,
+                );
+          }
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -83,6 +91,7 @@ class _HomePageState extends State<HomePage> {
       } else {
         context.read<ChannelProvider>().clearChannels();
         context.read<MessageProvider>().clearAllChannels();
+        context.read<DMProvider>().clearChannels();
       }
     };
     _workspaceProvider.addListener(_workspaceListener!);

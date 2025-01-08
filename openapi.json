@@ -442,13 +442,17 @@
             },
             "joined_at": {
               "type": "string"
+            },
+            "role": {
+              "type": "string"
             }
           },
           "required": [
             "id",
             "username",
             "email",
-            "joined_at"
+            "joined_at",
+            "role"
           ]
         }
       },
@@ -846,6 +850,9 @@
           "id": {
             "type": "string"
           },
+          "workspace_id": {
+            "type": "string"
+          },
           "created_at": {
             "type": "string"
           },
@@ -855,9 +862,48 @@
         },
         "required": [
           "id",
+          "workspace_id",
           "created_at",
           "updated_at"
         ]
+      },
+      "ListDMChannelsResponse": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "workspace_id": {
+              "type": "string"
+            },
+            "created_at": {
+              "type": "string"
+            },
+            "updated_at": {
+              "type": "string"
+            },
+            "usernames": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "last_message_at": {
+              "type": "string",
+              "nullable": true
+            }
+          },
+          "required": [
+            "id",
+            "workspace_id",
+            "created_at",
+            "updated_at",
+            "usernames",
+            "last_message_at"
+          ]
+        }
       },
       "SendDMResponse": {
         "type": "object",
@@ -1463,6 +1509,15 @@
               "type": "string"
             },
             "description": "Workspace ID"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search term to filter users by username or email"
           }
         ],
         "responses": {
@@ -1553,6 +1608,15 @@
               "type": "string"
             },
             "description": "Channel ID"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search term to filter users by username or email"
           }
         ],
         "responses": {
@@ -3103,15 +3167,26 @@
         }
       }
     },
-    "/dm": {
+    "/dm/workspace/{workspaceId}": {
       "post": {
         "tags": [
           "direct-messages"
         ],
-        "summary": "Create a direct message channel",
+        "summary": "Create a direct message channel in a workspace",
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Workspace ID"
           }
         ],
         "requestBody": {
@@ -3147,7 +3222,7 @@
             }
           },
           "400": {
-            "description": "Invalid request body or users from different workspaces",
+            "description": "Invalid request body",
             "content": {
               "application/json": {
                 "schema": {
@@ -3182,8 +3257,105 @@
               }
             }
           },
+          "403": {
+            "description": "Not a member of the workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
           "404": {
-            "description": "One or more users not found",
+            "description": "Workspace not found or one or more users not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "direct-messages"
+        ],
+        "summary": "List DM channels in a workspace",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Workspace ID"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search term to filter DM channels"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of DM channels retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListDMChannelsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a member of the workspace",
             "content": {
               "application/json": {
                 "schema": {

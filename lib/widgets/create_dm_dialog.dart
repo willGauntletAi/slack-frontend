@@ -195,10 +195,15 @@ class _CreateDMDialogState extends State<CreateDMDialog> {
                       if (authProvider.accessToken == null) return;
 
                       final dmProvider = context.read<DMProvider>();
+                      final workspaceProvider =
+                          context.read<WorkspaceProvider>();
+                      if (workspaceProvider.selectedWorkspace == null) return;
+
                       final userIds = selected.map((u) => u.id).toList();
 
                       final channel = await dmProvider.createDMChannel(
                         authProvider.accessToken!,
+                        workspaceProvider.selectedWorkspace!.id,
                         userIds,
                       );
 

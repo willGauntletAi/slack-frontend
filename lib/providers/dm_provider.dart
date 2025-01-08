@@ -37,23 +37,31 @@ class DirectMessage {
 
 class DMChannel {
   final String id;
+  final String workspaceId;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final List<String> participants;
+  final List<String> usernames;
+  final DateTime? lastMessageAt;
 
   DMChannel({
     required this.id,
+    required this.workspaceId,
     required this.createdAt,
     required this.updatedAt,
-    required this.participants,
+    required this.usernames,
+    this.lastMessageAt,
   });
 
   factory DMChannel.fromJson(Map<String, dynamic> json) {
     return DMChannel(
       id: json['id'],
+      workspaceId: json['workspace_id'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
-      participants: List<String>.from(json['participants'] ?? []),
+      usernames: List<String>.from(json['usernames']),
+      lastMessageAt: json['last_message_at'] != null
+          ? DateTime.parse(json['last_message_at'])
+          : null,
     );
   }
 }
@@ -75,6 +83,8 @@ class DMProvider with ChangeNotifier {
   final Map<String, bool> _channelHasMore = {};
   // Currently selected DM channel
   DMChannel? _selectedChannel;
+
+  List<DMChannel> _channels = [];
 
   DMProvider(this.authProvider, this._wsProvider) {
     _setupWebSocketListener();
@@ -163,10 +173,10 @@ class DMProvider with ChangeNotifier {
   }
 
   Future<DMChannel?> createDMChannel(
-      String accessToken, List<String> userIds) async {
+      String accessToken, String workspaceId, List<String> userIds) async {
     try {
       final response = await http.post(
-        Uri.parse('${ApiConfig.baseUrl}/dm'),
+        Uri.parse('${ApiConfig.baseUrl}/dm/workspace/$workspaceId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',
@@ -178,6 +188,8 @@ class DMProvider with ChangeNotifier {
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
+        debugPrint('DM channel data: $response.body');
+        debugPrint('DM channel created successfully');
         return DMChannel.fromJson(data);
       } else {
         final error = json.decode(response.body);
@@ -348,6 +360,53 @@ class DMProvider with ChangeNotifier {
     _channelLastMessageIds.clear();
     _channelHasMore.clear();
     _selectedChannel = null;
+    notifyListeners();
+  }
+
+  List<DMChannel> get channels => _channels;
+
+  Future<void> fetchDMChannels(String accessToken, String workspaceId) async {
+    try {
+      debugPrint('Fetching DM channels for workspace $workspaceId');
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/dm/workspace/$workspaceId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('DM channels fetched successfully');
+        debugPrint('DM channels: ${response.body}');
+        final List<dynamic> data = json.decode(response.body);
+        _channels = data.map((json) => DMChannel.fromJson(json)).toList();
+
+        // Select the first channel by default if none is selected
+        if (_channels.isNotEmpty && _selectedChannel == null) {
+          selectChannel(_channels.first);
+        }
+        notifyListeners();
+      } else {
+        debugPrint('Failed to fetch DM channels');
+        final error = json.decode(response.body);
+        throw Exception(error['error'] ?? 'Failed to fetch DM channels');
+      }
+    } catch (e) {
+      debugPrint('Error fetching DM channels: $e');
+      _channels = [];
+      notifyListeners();
+    }
+  }
+
+  void clearChannels() {
+    _channels = [];
+    _selectedChannel = null;
+    _channelMessages.clear();
+    _channelLoading.clear();
+    _channelErrors.clear();
+    _channelLastMessageIds.clear();
+    _channelHasMore.clear();
     notifyListeners();
   }
 
