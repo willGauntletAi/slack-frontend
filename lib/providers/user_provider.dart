@@ -78,4 +78,4 @@ class UserProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
-} 
+}

@@ -16,8 +16,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   final authService = AuthService(prefs);
-  
-runApp(
+
+  runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(

@@ -19,8 +19,9 @@ class ChannelList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedWorkspace = context.watch<WorkspaceProvider>().selectedWorkspace;
-    
+    final selectedWorkspace =
+        context.watch<WorkspaceProvider>().selectedWorkspace;
+
     if (selectedWorkspace == null) {
       return Container();
     }
@@ -63,7 +64,8 @@ class ChannelList extends StatelessWidget {
                           context: context,
                           builder: (context) => AlertDialog(
                             title: const Text('Leave Workspace'),
-                            content: Text('Are you sure you want to leave ${selectedWorkspace.name}?'),
+                            content: Text(
+                                'Are you sure you want to leave ${selectedWorkspace.name}?'),
                             actions: [
                               TextButton(
                                 onPressed: () => Navigator.pop(context, false),
@@ -82,22 +84,26 @@ class ChannelList extends StatelessWidget {
 
                         if (shouldLeave == true && context.mounted) {
                           final authProvider = context.read<AuthProvider>();
-                          if (authProvider.accessToken != null && authProvider.currentUser != null) {
+                          if (authProvider.accessToken != null &&
+                              authProvider.currentUser != null) {
                             final workspaceName = selectedWorkspace.name;
-                            final success = await context.read<WorkspaceProvider>().leaveWorkspace(
-                              authProvider.accessToken!,
-                              selectedWorkspace.id,
-                              authProvider.currentUser!.id,
-                            );
-                            
+                            final success = await context
+                                .read<WorkspaceProvider>()
+                                .leaveWorkspace(
+                                  authProvider.accessToken!,
+                                  selectedWorkspace.id,
+                                  authProvider.currentUser!.id,
+                                );
+
                             if (context.mounted) {
-                              final error = context.read<WorkspaceProvider>().error;
+                              final error =
+                                  context.read<WorkspaceProvider>().error;
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(
                                     success
-                                      ? 'Left $workspaceName'
-                                      : error ?? 'Failed to leave workspace',
+                                        ? 'Left $workspaceName'
+                                        : error ?? 'Failed to leave workspace',
                                   ),
                                   backgroundColor: success ? null : Colors.red,
                                 ),
@@ -112,7 +118,8 @@ class ChannelList extends StatelessWidget {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Unable to leave workspace: User not found'),
+                                  content: Text(
+                                      'Unable to leave workspace: User not found'),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -186,8 +193,9 @@ class ChannelList extends StatelessWidget {
                 itemCount: channelProvider.channels.length,
                 itemBuilder: (context, index) {
                   final channel = channelProvider.channels[index];
-                  final isSelected = channel.id == channelProvider.selectedChannel?.id;
-                  
+                  final isSelected =
+                      channel.id == channelProvider.selectedChannel?.id;
+
                   return ListTile(
                     leading: Icon(
                       channel.isPrivate ? Icons.lock : Icons.tag,
@@ -215,33 +223,43 @@ class ChannelList extends StatelessWidget {
                                   leading: const Icon(Icons.exit_to_app),
                                   title: const Text('Leave Channel'),
                                   onTap: () async {
-                                    Navigator.pop(context); // Close bottom sheet
-                                    final authProvider = context.read<AuthProvider>();
-                                    final userProvider = context.read<UserProvider>();
-                                    
-                                    if (authProvider.accessToken != null && userProvider.userId != null) {
-                                      final success = await channelProvider.leaveChannel(
+                                    Navigator.pop(
+                                        context); // Close bottom sheet
+                                    final authProvider =
+                                        context.read<AuthProvider>();
+                                    final userProvider =
+                                        context.read<UserProvider>();
+
+                                    if (authProvider.accessToken != null &&
+                                        userProvider.userId != null) {
+                                      final success =
+                                          await channelProvider.leaveChannel(
                                         authProvider.accessToken!,
                                         channel.id,
                                         userProvider.userId!,
                                       );
                                       if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              success 
-                                                ? 'Left ${channel.name}'
-                                                : channelProvider.error ?? 'Failed to leave channel',
+                                              success
+                                                  ? 'Left ${channel.name}'
+                                                  : channelProvider.error ??
+                                                      'Failed to leave channel',
                                             ),
-                                            backgroundColor: success ? null : Colors.red,
+                                            backgroundColor:
+                                                success ? null : Colors.red,
                                           ),
                                         );
                                       }
                                     } else {
                                       if (context.mounted) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
                                           const SnackBar(
-                                            content: Text('Unable to leave channel: User ID not found'),
+                                            content: Text(
+                                                'Unable to leave channel: User ID not found'),
                                             backgroundColor: Colors.red,
                                           ),
                                         );
@@ -264,4 +282,4 @@ class ChannelList extends StatelessWidget {
       ],
     );
   }
-} 
+}

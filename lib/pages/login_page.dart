@@ -23,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     // Remove focus before submitting
     FocusScope.of(context).unfocus();
-    
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -43,14 +43,14 @@ class _LoginPageState extends State<LoginPage> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        
+
         if (mounted) {
           await context.read<AuthProvider>().setTokens(
-            accessToken: data['accessToken'],
-            refreshToken: data['refreshToken'],
-            userData: data['user'],
-          );
-          
+                accessToken: data['accessToken'],
+                refreshToken: data['refreshToken'],
+                userData: data['user'],
+              );
+
           if (mounted) {
             Navigator.of(context).pushReplacementNamed('/home');
           }
@@ -112,7 +112,8 @@ class _LoginPageState extends State<LoginPage> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
                       return 'Please enter a valid email';
                     }
                     return null;
@@ -171,4 +172,4 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
-} 
+}

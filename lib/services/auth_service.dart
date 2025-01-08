@@ -40,4 +40,4 @@ class AuthService {
     await clearRefreshToken();
     await clearUserData();
   }
-} 
+}

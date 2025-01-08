@@ -58,7 +58,8 @@ class MessageProvider with ChangeNotifier {
   StreamSubscription? _messageSubscription;
 
   MessageProvider(this.webSocketProvider, this.channelProvider) {
-    _messageSubscription = webSocketProvider.messageStream.listen(_handleWebSocketMessage);
+    _messageSubscription =
+        webSocketProvider.messageStream.listen(_handleWebSocketMessage);
   }
 
   List<Message> get messages => _channelMessages[_currentChannelId] ?? [];
@@ -74,27 +75,31 @@ class MessageProvider with ChangeNotifier {
         // Add channelId from the WebSocket message to the message data
         messageData['channel_id'] = message['channelId'];
         final newMessage = Message.fromJson(messageData);
-        debugPrint('Created new message object for channel ${newMessage.channelId}');
+        debugPrint(
+            'Created new message object for channel ${newMessage.channelId}');
         debugPrint('Current channel ID: $_currentChannelId');
-        
+
         final channelMessages = _channelMessages[newMessage.channelId] ?? [];
         debugPrint('Current messages in channel: ${channelMessages.length}');
-        
+
         // Check if message already exists
         if (channelMessages.any((m) => m.id == newMessage.id)) {
-          debugPrint('Message ${newMessage.id} already exists in channel, skipping');
+          debugPrint(
+              'Message ${newMessage.id} already exists in channel, skipping');
           return; // Skip duplicate message
         }
-        
+
         // Find the correct position to insert the new message
         // Messages are ordered from newest (largest ID) to oldest (smallest ID)
-        int insertIndex = channelMessages.indexWhere((m) => m.id.compareTo(newMessage.id) < 0);
+        int insertIndex = channelMessages
+            .indexWhere((m) => m.id.compareTo(newMessage.id) < 0);
         if (insertIndex == -1) {
           debugPrint('Adding message ${newMessage.id} to end of list');
           // If all messages have smaller IDs, append to the end
           channelMessages.add(newMessage);
         } else {
-          debugPrint('Inserting message ${newMessage.id} at position $insertIndex');
+          debugPrint(
+              'Inserting message ${newMessage.id} at position $insertIndex');
           // Insert before the first message with a larger ID
           channelMessages.insert(insertIndex, newMessage);
         }
@@ -107,7 +112,8 @@ class MessageProvider with ChangeNotifier {
         final updatedMessage = Message.fromJson(message['message']);
         final channelMessages = _channelMessages[updatedMessage.channelId];
         if (channelMessages != null) {
-          final index = channelMessages.indexWhere((m) => m.id == updatedMessage.id);
+          final index =
+              channelMessages.indexWhere((m) => m.id == updatedMessage.id);
           if (index != -1) {
             channelMessages[index] = updatedMessage;
             notifyListeners();
@@ -136,12 +142,14 @@ class MessageProvider with ChangeNotifier {
       _channelLoading[channelId] = false;
       _channelHasMore[channelId] = true;
     } else {
-      debugPrint('Channel $channelId already initialized with ${_channelMessages[channelId]?.length} messages');
+      debugPrint(
+          'Channel $channelId already initialized with ${_channelMessages[channelId]?.length} messages');
     }
     notifyListeners();
   }
 
-  Future<void> loadMessages(String accessToken, String channelId, {int limit = 50}) async {
+  Future<void> loadMessages(String accessToken, String channelId,
+      {int limit = 50}) async {
     debugPrint('Loading messages for channel: $channelId');
     if (_channelLoading[channelId] == true) {
       debugPrint('Already loading messages for channel: $channelId');
@@ -172,20 +180,22 @@ class MessageProvider with ChangeNotifier {
         final List<dynamic> data = json.decode(response.body);
         debugPrint('Received ${data.length} messages');
         final newMessages = data.map((json) => Message.fromJson(json)).toList();
-        
+
         if (newMessages.isEmpty) {
           debugPrint('No more messages to load');
           _channelHasMore[channelId] = false;
         } else {
           final channelMessages = _channelMessages[channelId] ?? [];
-          debugPrint('Adding ${newMessages.length} messages to existing ${channelMessages.length} messages');
+          debugPrint(
+              'Adding ${newMessages.length} messages to existing ${channelMessages.length} messages');
           channelMessages.addAll(newMessages);
           _channelMessages[channelId] = channelMessages;
           _channelLastMessageIds[channelId] = newMessages.last.id;
           notifyListeners();
-          debugPrint('Updated channel messages count: ${channelMessages.length}');
+          debugPrint(
+              'Updated channel messages count: ${channelMessages.length}');
         }
-        
+
         _channelErrors[channelId] = null;
       } else {
         final error = json.decode(response.body);
@@ -219,7 +229,9 @@ class MessageProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<Message?> sendMessage(String accessToken, String channelId, String content, {String? parentId}) async {
+  Future<Message?> sendMessage(
+      String accessToken, String channelId, String content,
+      {String? parentId}) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/message/channel/$channelId'),
@@ -249,7 +261,8 @@ class MessageProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> updateMessage(String accessToken, String messageId, String content) async {
+  Future<bool> updateMessage(
+      String accessToken, String messageId, String content) async {
     try {
       final response = await http.put(
         Uri.parse('${ApiConfig.baseUrl}/message/$messageId'),
@@ -268,7 +281,8 @@ class MessageProvider with ChangeNotifier {
       } else {
         final error = json.decode(response.body);
         if (_currentChannelId != null) {
-          _channelErrors[_currentChannelId!] = error['error'] ?? 'Failed to update message';
+          _channelErrors[_currentChannelId!] =
+              error['error'] ?? 'Failed to update message';
         }
         return false;
       }
@@ -296,7 +310,8 @@ class MessageProvider with ChangeNotifier {
       } else {
         final error = json.decode(response.body);
         if (_currentChannelId != null) {
-          _channelErrors[_currentChannelId!] = error['error'] ?? 'Failed to delete message';
+          _channelErrors[_currentChannelId!] =
+              error['error'] ?? 'Failed to delete message';
         }
         return false;
       }
@@ -313,4 +328,4 @@ class MessageProvider with ChangeNotifier {
     _messageSubscription?.cancel();
     super.dispose();
   }
-} 
+}

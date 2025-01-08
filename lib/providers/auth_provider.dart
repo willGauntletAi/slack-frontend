@@ -28,7 +28,7 @@ class AuthProvider extends ChangeNotifier {
     try {
       final refreshToken = await _authService.getRefreshToken();
       final userData = await _authService.getUserData();
-      
+
       if (refreshToken != null && userData != null) {
         _currentUser = User.fromJson(userData);
         await _refreshAccessToken(refreshToken);
@@ -91,4 +91,4 @@ class AuthProvider extends ChangeNotifier {
     await _authService.clearAll();
     notifyListeners();
   }
-} 
+}

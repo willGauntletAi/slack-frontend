@@ -41,17 +41,17 @@ class _ChatAreaState extends State<ChatArea> {
         );
       }
     });
-
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.9) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent * 0.9) {
       final channel = _channelProvider.selectedChannel;
       final authProvider = context.read<AuthProvider>();
-      
-      if (channel != null && 
-          authProvider.accessToken != null && 
-          !_messageProvider.isLoading && 
+
+      if (channel != null &&
+          authProvider.accessToken != null &&
+          !_messageProvider.isLoading &&
           _messageProvider.hasMore) {
         _messageProvider.loadMessages(
           authProvider.accessToken!,
@@ -64,7 +64,7 @@ class _ChatAreaState extends State<ChatArea> {
   void _onChannelChanged() {
     final channel = _channelProvider.selectedChannel;
     final authProvider = context.read<AuthProvider>();
-    
+
     if (channel != null && authProvider.accessToken != null) {
       debugPrint('Channel changed to: ${channel.id}');
       // Clear existing messages and load new ones
@@ -89,7 +89,7 @@ class _ChatAreaState extends State<ChatArea> {
 
     final authProvider = context.read<AuthProvider>();
     final channel = context.read<ChannelProvider>().selectedChannel;
-    
+
     if (authProvider.accessToken == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -111,7 +111,7 @@ class _ChatAreaState extends State<ChatArea> {
     }
 
     _messageController.clear();
-    
+
     final message = await _messageProvider.sendMessage(
       authProvider.accessToken!,
       channel.id,
@@ -130,7 +130,8 @@ class _ChatAreaState extends State<ChatArea> {
 
   @override
   Widget build(BuildContext context) {
-    final selectedWorkspace = context.watch<WorkspaceProvider>().selectedWorkspace;
+    final selectedWorkspace =
+        context.watch<WorkspaceProvider>().selectedWorkspace;
     final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
     final currentUser = context.watch<AuthProvider>().currentUser;
     final messages = context.watch<MessageProvider>().messages;
@@ -193,29 +194,32 @@ class _ChatAreaState extends State<ChatArea> {
                   onPressed: () async {
                     final authProvider = context.read<AuthProvider>();
                     if (authProvider.accessToken != null) {
-                      final success = await context.read<WorkspaceProvider>().acceptInvite(
-                        authProvider.accessToken!,
-                        selectedWorkspace.id,
-                      );
-                      
+                      final success =
+                          await context.read<WorkspaceProvider>().acceptInvite(
+                                authProvider.accessToken!,
+                                selectedWorkspace.id,
+                              );
+
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
                               success
-                                ? 'Joined ${selectedWorkspace.name}'
-                                : context.read<WorkspaceProvider>().error ?? 'Failed to join workspace',
+                                  ? 'Joined ${selectedWorkspace.name}'
+                                  : context.read<WorkspaceProvider>().error ??
+                                      'Failed to join workspace',
                             ),
-                            backgroundColor: success ? Colors.green : Colors.red,
+                            backgroundColor:
+                                success ? Colors.green : Colors.red,
                           ),
                         );
 
                         if (success) {
                           // Fetch channels for the newly joined workspace
                           await context.read<ChannelProvider>().fetchChannels(
-                            authProvider.accessToken!,
-                            selectedWorkspace.id,
-                          );
+                                authProvider.accessToken!,
+                                selectedWorkspace.id,
+                              );
                         }
                       }
                     }
@@ -236,18 +240,20 @@ class _ChatAreaState extends State<ChatArea> {
                   onPressed: () async {
                     final authProvider = context.read<AuthProvider>();
                     if (authProvider.accessToken != null) {
-                      final success = await context.read<WorkspaceProvider>().rejectInvite(
-                        authProvider.accessToken!,
-                        selectedWorkspace.id,
-                      );
-                      
+                      final success =
+                          await context.read<WorkspaceProvider>().rejectInvite(
+                                authProvider.accessToken!,
+                                selectedWorkspace.id,
+                              );
+
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
                               success
-                                ? 'Rejected invitation to ${selectedWorkspace.name}'
-                                : context.read<WorkspaceProvider>().error ?? 'Failed to reject invitation',
+                                  ? 'Rejected invitation to ${selectedWorkspace.name}'
+                                  : context.read<WorkspaceProvider>().error ??
+                                      'Failed to reject invitation',
                             ),
                             backgroundColor: success ? null : Colors.red,
                           ),
@@ -288,7 +294,8 @@ class _ChatAreaState extends State<ChatArea> {
         Expanded(
           child: Consumer<MessageProvider>(
             builder: (context, messageProvider, _) {
-              if (messageProvider.messages.isEmpty && messageProvider.isLoading) {
+              if (messageProvider.messages.isEmpty &&
+                  messageProvider.isLoading) {
                 return const Center(child: CircularProgressIndicator());
               }
 
@@ -302,7 +309,8 @@ class _ChatAreaState extends State<ChatArea> {
                 controller: _scrollController,
                 reverse: true,
                 padding: const EdgeInsets.all(8.0),
-                itemCount: messages.length + (messageProvider.isLoading ? 1 : 0),
+                itemCount:
+                    messages.length + (messageProvider.isLoading ? 1 : 0),
                 itemBuilder: (context, index) {
                   if (messageProvider.isLoading && index == messages.length) {
                     return const Center(child: CircularProgressIndicator());
@@ -358,4 +366,4 @@ class _ChatAreaState extends State<ChatArea> {
       ],
     );
   }
-} 
+}

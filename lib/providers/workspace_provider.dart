@@ -60,7 +60,7 @@ class WorkspaceProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         _workspaces = data.map((json) => Workspace.fromJson(json)).toList();
-        
+
         // Select the first workspace if none is selected
         if (_selectedWorkspace == null && _workspaces.isNotEmpty) {
           _selectedWorkspace = _workspaces.first;
@@ -110,7 +110,8 @@ class WorkspaceProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> inviteUser(String token, String workspaceId, String email) async {
+  Future<bool> inviteUser(
+      String token, String workspaceId, String email) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/workspace/$workspaceId/invite'),
@@ -157,7 +158,8 @@ class WorkspaceProvider with ChangeNotifier {
         // Refresh the workspace list to update the workspace's status
         await fetchWorkspaces(token);
         _error = null;
-        _selectedWorkspace = _workspaces.firstWhere((workspace) => workspace.id == workspaceId);
+        _selectedWorkspace =
+            _workspaces.firstWhere((workspace) => workspace.id == workspaceId);
         return true;
       } else {
         final error = json.decode(response.body);
@@ -209,7 +211,8 @@ class WorkspaceProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> leaveWorkspace(String token, String workspaceId, String userId) async {
+  Future<bool> leaveWorkspace(
+      String token, String workspaceId, String userId) async {
     try {
       final response = await http.delete(
         Uri.parse('${ApiConfig.baseUrl}/workspace/$workspaceId/member/$userId'),
@@ -225,7 +228,8 @@ class WorkspaceProvider with ChangeNotifier {
         _error = null;
         // Clear selected workspace if we just left it
         if (_selectedWorkspace?.id == workspaceId) {
-          _selectedWorkspace = _workspaces.isNotEmpty ? _workspaces.first : null;
+          _selectedWorkspace =
+              _workspaces.isNotEmpty ? _workspaces.first : null;
         }
         return true;
       } else {
@@ -244,4 +248,4 @@ class WorkspaceProvider with ChangeNotifier {
       return false;
     }
   }
-} 
+}

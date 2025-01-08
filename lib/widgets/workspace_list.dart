@@ -65,7 +65,8 @@ class WorkspaceList extends StatelessWidget {
                       width: 56,
                       height: 56,
                       alignment: Alignment.center,
-                      child: const Icon(Icons.add, color: Colors.white, size: 32),
+                      child:
+                          const Icon(Icons.add, color: Colors.white, size: 32),
                     ),
                   ),
                 ),
@@ -125,8 +126,9 @@ class WorkspaceList extends StatelessWidget {
                 itemCount: workspaceProvider.workspaces.length,
                 itemBuilder: (context, index) {
                   final workspace = workspaceProvider.workspaces[index];
-                  final isSelected = workspace.id == workspaceProvider.selectedWorkspace?.id;
-                  
+                  final isSelected =
+                      workspace.id == workspaceProvider.selectedWorkspace?.id;
+
                   return Tooltip(
                     message: workspace.name,
                     preferBelow: false,
@@ -141,7 +143,8 @@ class WorkspaceList extends StatelessWidget {
                       child: Stack(
                         children: [
                           InkWell(
-                            onTap: () => workspaceProvider.selectWorkspace(workspace),
+                            onTap: () =>
+                                workspaceProvider.selectWorkspace(workspace),
                             customBorder: const CircleBorder(),
                             child: Container(
                               width: isFullScreen ? 64 : 40,
@@ -150,7 +153,8 @@ class WorkspaceList extends StatelessWidget {
                               child: Text(
                                 workspace.name[0].toUpperCase(),
                                 style: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.black,
+                                  color:
+                                      isSelected ? Colors.white : Colors.black,
                                   fontWeight: FontWeight.bold,
                                   fontSize: isFullScreen ? 24 : 16,
                                 ),
@@ -209,11 +213,10 @@ class WorkspaceList extends StatelessWidget {
                 ),
               ),
             ),
-            if (isFullScreen)
-              const SizedBox(height: 24),
+            if (isFullScreen) const SizedBox(height: 24),
           ],
         );
       },
     );
   }
-} 
+}

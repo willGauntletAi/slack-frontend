@@ -65,7 +65,7 @@ class ChannelProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         _channels = data.map((json) => Channel.fromJson(json)).toList();
-        
+
         // Select the first channel by default if none is selected
         if (_channels.isNotEmpty) {
           // Always select first channel to ensure proper initialization
@@ -86,7 +86,9 @@ class ChannelProvider extends ChangeNotifier {
     }
   }
 
-  Future<Channel?> createChannel(String accessToken, String workspaceId, String name, {bool isPrivate = false}) async {
+  Future<Channel?> createChannel(
+      String accessToken, String workspaceId, String name,
+      {bool isPrivate = false}) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/channel/workspace/$workspaceId'),
@@ -103,10 +105,10 @@ class ChannelProvider extends ChangeNotifier {
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
         final newChannel = Channel.fromJson(data);
-        
+
         _channels.add(newChannel);
         notifyListeners();
-        
+
         return newChannel;
       } else {
         final error = json.decode(response.body);
@@ -119,7 +121,8 @@ class ChannelProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> leaveChannel(String accessToken, String channelId, String userId) async {
+  Future<bool> leaveChannel(
+      String accessToken, String channelId, String userId) async {
     try {
       final response = await http.delete(
         Uri.parse('${ApiConfig.baseUrl}/channel/$channelId/member/$userId'),
@@ -147,15 +150,18 @@ class ChannelProvider extends ChangeNotifier {
     }
   }
 
-  Future<List<Channel>> fetchPublicChannels(String accessToken, String workspaceId, {String? search}) async {
+  Future<List<Channel>> fetchPublicChannels(
+      String accessToken, String workspaceId,
+      {String? search}) async {
     try {
       var queryParams = 'exclude_mine=true';
       if (search != null && search.isNotEmpty) {
         queryParams += '&search=$search';
       }
-      
+
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/channel/workspace/$workspaceId?$queryParams'),
+        Uri.parse(
+            '${ApiConfig.baseUrl}/channel/workspace/$workspaceId?$queryParams'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',
@@ -176,7 +182,8 @@ class ChannelProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> joinChannel(String accessToken, String channelId, String userId, String workspaceId) async {
+  Future<bool> joinChannel(String accessToken, String channelId, String userId,
+      String workspaceId) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/channel/$channelId/member/$userId'),
@@ -185,7 +192,6 @@ class ChannelProvider extends ChangeNotifier {
           'Authorization': 'Bearer $accessToken',
         },
       );
-
 
       if (response.statusCode == 200) {
         // Refresh the channels list
@@ -208,4 +214,4 @@ class ChannelProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
-} 
+}

@@ -5,7 +5,8 @@ class WebSocketProvider with ChangeNotifier {
   final WebSocketService _webSocketService = WebSocketService();
   bool get isConnected => _webSocketService.isConnected;
 
-  Stream<Map<String, dynamic>> get messageStream => _webSocketService.messageStream;
+  Stream<Map<String, dynamic>> get messageStream =>
+      _webSocketService.messageStream;
 
   Future<void> connect(String token) async {
     await _webSocketService.connect(token);
@@ -28,4 +29,4 @@ class WebSocketProvider with ChangeNotifier {
     _webSocketService.dispose();
     super.dispose();
   }
-} 
+}

@@ -43,14 +43,14 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
-        
+
         if (mounted) {
           await context.read<AuthProvider>().setTokens(
-            accessToken: data['accessToken'],
-            refreshToken: data['refreshToken'],
-            userData: data['user'],
-          );
-          
+                accessToken: data['accessToken'],
+                refreshToken: data['refreshToken'],
+                userData: data['user'],
+              );
+
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Registration successful!')),
@@ -146,7 +146,8 @@ class _RegisterPageState extends State<RegisterPage> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter an email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                        .hasMatch(value)) {
                       return 'Please enter a valid email';
                     }
                     return null;
@@ -210,4 +211,4 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
     );
   }
-} 
+}

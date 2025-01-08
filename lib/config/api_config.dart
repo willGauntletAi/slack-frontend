@@ -8,7 +8,7 @@ class ApiConfig {
     if (kIsWeb) {
       return 'http://localhost:3000';
     }
-    
+
     // For iOS Simulator and macOS, we need to use localhost.
     if (Platform.isIOS || Platform.isMacOS) {
       return 'http://127.0.0.1:3000';
@@ -32,4 +32,4 @@ class ApiConfig {
   static String get registerUrl => '$baseUrl/auth/register';
   static String get refreshTokenUrl => '$baseUrl/auth/refresh';
   static String get logoutUrl => '$baseUrl/auth/logout';
-} 
+}
