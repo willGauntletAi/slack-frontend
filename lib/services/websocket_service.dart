@@ -79,36 +79,6 @@ class WebSocketService {
     _channel = null;
   }
 
-  void subscribeToWorkspace(String workspaceId) {
-    if (!_isConnected) {
-      return;
-    }
-
-    final message = {
-      'type': 'subscribe',
-      'workspaceId': workspaceId,
-    };
-    try {
-      _channel?.sink.add(jsonEncode(message));
-    } catch (e) {
-      _handleDisconnect('Send error: $e');
-    }
-  }
-
-  void unsubscribeFromWorkspace(String workspaceId) {
-    if (!_isConnected) return;
-
-    final message = {
-      'type': 'unsubscribe_from_workspace',
-      'workspaceId': workspaceId,
-    };
-    try {
-      _channel?.sink.add(jsonEncode(message));
-    } catch (e) {
-      _handleDisconnect('Send error: $e');
-    }
-  }
-
   void sendMessage(String channelId, String content) {
     if (!_isConnected) return;
 

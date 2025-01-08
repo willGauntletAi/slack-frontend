@@ -16,37 +16,7 @@
                 "vendor": "zod"
               }
             },
-            "typeName": "ZodObject",
-            "openapi": {
-              "metadata": {
-                "description": "Subscribe to a channel"
-              }
-            }
-          },
-          "~standard": {
-            "version": 1,
-            "vendor": "zod"
-          },
-          "_cached": null
-        },
-        {
-          "_def": {
-            "unknownKeys": "strip",
-            "catchall": {
-              "_def": {
-                "typeName": "ZodNever"
-              },
-              "~standard": {
-                "version": 1,
-                "vendor": "zod"
-              }
-            },
-            "typeName": "ZodObject",
-            "openapi": {
-              "metadata": {
-                "description": "Unsubscribe from a channel"
-              }
-            }
+            "typeName": "ZodObject"
           },
           "~standard": {
             "version": 1,
@@ -135,32 +105,7 @@
                   "typeName": "ZodObject",
                   "openapi": {
                     "metadata": {
-                      "description": "Channel subscription successful event"
-                    }
-                  }
-                },
-                "~standard": {
-                  "version": 1,
-                  "vendor": "zod"
-                },
-                "_cached": null
-              },
-              {
-                "_def": {
-                  "unknownKeys": "strip",
-                  "catchall": {
-                    "_def": {
-                      "typeName": "ZodNever"
-                    },
-                    "~standard": {
-                      "version": 1,
-                      "vendor": "zod"
-                    }
-                  },
-                  "typeName": "ZodObject",
-                  "openapi": {
-                    "metadata": {
-                      "description": "Channel unsubscription successful event"
+                      "description": "Typing event"
                     }
                   }
                 },

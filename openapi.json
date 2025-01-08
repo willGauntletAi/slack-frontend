@@ -776,6 +776,9 @@
             },
             "username": {
               "type": "string"
+            },
+            "channel_id": {
+              "type": "string"
             }
           },
           "required": [
@@ -785,7 +788,8 @@
             "created_at",
             "updated_at",
             "user_id",
-            "username"
+            "username",
+            "channel_id"
           ]
         }
       },
@@ -842,21 +846,48 @@
           "id": {
             "type": "string"
           },
-          "user1_id": {
-            "type": "string"
-          },
-          "user2_id": {
-            "type": "string"
-          },
           "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
             "type": "string"
           }
         },
         "required": [
           "id",
-          "user1_id",
-          "user2_id",
-          "created_at"
+          "created_at",
+          "updated_at"
+        ]
+      },
+      "SendDMResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "user_id": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "content",
+          "user_id",
+          "created_at",
+          "updated_at",
+          "username"
         ]
       },
       "GetDMMessagesResponse": {
@@ -878,6 +909,9 @@
             },
             "updated_at": {
               "type": "string"
+            },
+            "username": {
+              "type": "string"
             }
           },
           "required": [
@@ -885,7 +919,8 @@
             "content",
             "user_id",
             "created_at",
-            "updated_at"
+            "updated_at",
+            "username"
           ]
         }
       },
@@ -914,6 +949,21 @@
           "user_id",
           "created_at",
           "updated_at"
+        ]
+      },
+      "DeleteDMResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "deleted_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "deleted_at"
         ]
       }
     },
@@ -3070,12 +3120,16 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "user_id": {
-                    "type": "string"
+                  "user_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1
                   }
                 },
                 "required": [
-                  "user_id"
+                  "user_ids"
                 ]
               }
             }
@@ -3088,6 +3142,114 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CreateDMChannelResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body or users from different workspaces",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "One or more users not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/dm/{channelId}/messages": {
+      "post": {
+        "tags": [
+          "direct-messages"
+        ],
+        "summary": "Send a direct message",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "channelId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "DM Channel ID"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "content"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Message sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SendDMResponse"
                 }
               }
             }
@@ -3128,8 +3290,8 @@
               }
             }
           },
-          "404": {
-            "description": "User not found",
+          "403": {
+            "description": "Not a participant in the DM channel",
             "content": {
               "application/json": {
                 "schema": {
@@ -3147,9 +3309,7 @@
             }
           }
         }
-      }
-    },
-    "/dm/{channelId}/messages": {
+      },
       "get": {
         "tags": [
           "direct-messages"
@@ -3177,7 +3337,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "Get messages before this timestamp"
+            "description": "Get messages before this message ID"
           },
           {
             "name": "limit",
@@ -3223,24 +3383,6 @@
           },
           "403": {
             "description": "Not a participant in the DM channel",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "DM channel not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -3349,6 +3491,94 @@
           },
           "403": {
             "description": "Not authorized to update message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Message not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "direct-messages"
+        ],
+        "summary": "Delete a direct message",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "messageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Message ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteDMResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized to delete message",
             "content": {
               "application/json": {
                 "schema": {

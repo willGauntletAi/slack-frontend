@@ -12,14 +12,6 @@ class WebSocketProvider with ChangeNotifier {
     await _webSocketService.connect(token);
   }
 
-  void subscribeToWorkspace(String workspaceId) {
-    _webSocketService.subscribeToWorkspace(workspaceId);
-  }
-
-  void unsubscribeFromWorkspace(String workspaceId) {
-    _webSocketService.unsubscribeFromWorkspace(workspaceId);
-  }
-
   void sendMessage(String channelId, String content) {
     _webSocketService.sendMessage(channelId, content);
   }

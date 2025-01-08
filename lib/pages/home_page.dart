@@ -65,15 +65,6 @@ class _HomePageState extends State<HomePage> {
                 authProvider.accessToken!,
                 workspace.id,
               );
-
-          // Subscribe to the workspace's real-time updates
-          if (mounted) {
-            context
-                .read<WebSocketProvider>()
-                .subscribeToWorkspace(workspace.id);
-            // Clear message state for the new workspace
-            context.read<MessageProvider>().clearAllChannels();
-          }
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
