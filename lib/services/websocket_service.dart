@@ -94,6 +94,22 @@ class WebSocketService {
     }
   }
 
+  void sendTypingIndicator(String channelId, bool isDm) {
+    debugPrint('Sending typing indicator for channel: $channelId, isDm: $isDm');
+    if (!_isConnected) return;
+
+    final message = {
+      'type': 'typing',
+      'channelId': channelId,
+      'isDM': isDm,
+    };
+    try {
+      _channel?.sink.add(jsonEncode(message));
+    } catch (e) {
+      _handleDisconnect('Send error: $e');
+    }
+  }
+
   void dispose() {
     _connectionTimeout?.cancel();
     _handleDisconnect('Service disposed');

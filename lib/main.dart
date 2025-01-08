@@ -8,6 +8,7 @@ import 'providers/channel_provider.dart';
 import 'providers/user_provider.dart';
 import 'providers/message_provider.dart';
 import 'providers/websocket_provider.dart';
+import 'providers/typing_indicator_provider.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
 import 'pages/home_page.dart';
@@ -33,13 +34,18 @@ void main() async {
           create: (_) => ChannelProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => WebSocketProvider(),
+          create: (_) => TypingIndicatorProvider(),
         ),
         ChangeNotifierProvider(
           create: (context) => MessageProvider(
-            context.read<WebSocketProvider>(),
             context.read<ChannelProvider>(),
             context.read<AuthProvider>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => WebSocketProvider(
+            context.read<TypingIndicatorProvider>(),
+            context.read<MessageProvider>(),
           ),
         ),
       ],

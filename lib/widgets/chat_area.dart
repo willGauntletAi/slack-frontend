@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/message_provider.dart';
+import '../providers/websocket_provider.dart';
+import '../providers/typing_indicator_provider.dart';
 import 'chat_message.dart';
 
 class ChatArea extends StatefulWidget {
@@ -18,6 +21,8 @@ class _ChatAreaState extends State<ChatArea> {
   final _scrollController = ScrollController();
   late final ChannelProvider _channelProvider;
   late final MessageProvider _messageProvider;
+  DateTime? _lastTypingIndicatorSent;
+  static const _typingThrottleDuration = Duration(seconds: 5);
 
   @override
   void initState() {
@@ -25,6 +30,19 @@ class _ChatAreaState extends State<ChatArea> {
     _scrollController.addListener(_onScroll);
     _channelProvider = context.read<ChannelProvider>();
     _messageProvider = context.read<MessageProvider>();
+    _messageController.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    final channel = _channelProvider.selectedChannel;
+    if (channel == null) return;
+
+    final now = DateTime.now();
+    if (_lastTypingIndicatorSent == null ||
+        now.difference(_lastTypingIndicatorSent!) >= _typingThrottleDuration) {
+      context.read<WebSocketProvider>().sendTypingIndicator(channel.id, false);
+      _lastTypingIndicatorSent = now;
+    }
   }
 
   void _onScroll() {
@@ -47,6 +65,7 @@ class _ChatAreaState extends State<ChatArea> {
 
   @override
   void dispose() {
+    _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -298,6 +317,34 @@ class _ChatAreaState extends State<ChatArea> {
             },
           ),
         ),
+        if (selectedChannel != null && currentUser != null)
+          Consumer<TypingIndicatorProvider>(
+            builder: (context, typingProvider, _) {
+              final typingUsers = typingProvider.getTypingUsernames(
+                selectedChannel.id,
+                currentUser.id,
+              );
+              if (typingUsers.isEmpty) return const SizedBox.shrink();
+
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  typingUsers.length == 1
+                      ? '${typingUsers.first} is typing...'
+                      : typingUsers.length == 2
+                          ? '${typingUsers.join(' and ')} are typing...'
+                          : '${typingUsers.length} people are typing...',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              );
+            },
+          ),
         Container(
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,

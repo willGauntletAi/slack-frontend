@@ -3,9 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:slack_frontend/providers/auth_provider.dart';
 import 'package:slack_frontend/providers/channel_provider.dart';
 import 'dart:convert';
-import 'dart:async';
 import '../config/api_config.dart';
-import 'websocket_provider.dart';
 
 class Message {
   final String id;
@@ -43,7 +41,6 @@ class Message {
 }
 
 class MessageProvider with ChangeNotifier {
-  final WebSocketProvider webSocketProvider;
   final ChannelProvider channelProvider;
   final AuthProvider authProvider;
   // Map of channelId to list of messages
@@ -57,12 +54,8 @@ class MessageProvider with ChangeNotifier {
   // Map of channelId to hasMore state
   final Map<String, bool> _channelHasMore = {};
   String? get _currentChannelId => channelProvider.selectedChannel?.id;
-  StreamSubscription? _messageSubscription;
 
-  MessageProvider(
-      this.webSocketProvider, this.channelProvider, this.authProvider) {
-    _messageSubscription =
-        webSocketProvider.messageStream.listen(_handleWebSocketMessage);
+  MessageProvider(this.channelProvider, this.authProvider) {
     channelProvider.addListener(_handleChannelChange);
   }
 
@@ -70,6 +63,62 @@ class MessageProvider with ChangeNotifier {
   bool get isLoading => _channelLoading[_currentChannelId] ?? false;
   String? get error => _channelErrors[_currentChannelId];
   bool get hasMore => _channelHasMore[_currentChannelId] ?? true;
+
+  void handleNewMessage(Map<String, dynamic> messageData) {
+    debugPrint('Handling new message event');
+    final newMessage = Message.fromJson(messageData);
+    debugPrint(
+        'Created new message object for channel ${newMessage.channelId}');
+    debugPrint('Current channel ID: $_currentChannelId');
+
+    final channelMessages = _channelMessages[newMessage.channelId] ?? [];
+    debugPrint('Current messages in channel: ${channelMessages.length}');
+
+    // Check if message already exists
+    if (channelMessages.any((m) => m.id == newMessage.id)) {
+      debugPrint(
+          'Message ${newMessage.id} already exists in channel, skipping');
+      return; // Skip duplicate message
+    }
+
+    // Find the correct position to insert the new message
+    // Messages are ordered from newest (largest ID) to oldest (smallest ID)
+    int insertIndex =
+        channelMessages.indexWhere((m) => m.id.compareTo(newMessage.id) < 0);
+    if (insertIndex == -1) {
+      debugPrint('Adding message ${newMessage.id} to end of list');
+      // If all messages have smaller IDs, append to the end
+      channelMessages.add(newMessage);
+    } else {
+      debugPrint('Inserting message ${newMessage.id} at position $insertIndex');
+      // Insert before the first message with a larger ID
+      channelMessages.insert(insertIndex, newMessage);
+    }
+    _channelMessages[newMessage.channelId] = channelMessages;
+    debugPrint('Updated messages in channel: ${channelMessages.length}');
+    notifyListeners();
+  }
+
+  void handleUpdatedMessage(Map<String, dynamic> messageData) {
+    final updatedMessage = Message.fromJson(messageData);
+    final channelMessages = _channelMessages[updatedMessage.channelId];
+    if (channelMessages != null) {
+      final index =
+          channelMessages.indexWhere((m) => m.id == updatedMessage.id);
+      if (index != -1) {
+        channelMessages[index] = updatedMessage;
+        notifyListeners();
+      }
+    }
+  }
+
+  void handleDeletedMessage(String messageId, String channelId) {
+    final channelMessages = _channelMessages[channelId];
+    if (channelMessages != null) {
+      channelMessages.removeWhere((m) => m.id == messageId);
+      notifyListeners();
+    }
+  }
 
   void _handleChannelChange() async {
     if (!_channelMessages.containsKey(_currentChannelId)) {
@@ -80,87 +129,6 @@ class MessageProvider with ChangeNotifier {
         _channelHasMore[channelId] = true;
         await loadMessages(authProvider.accessToken!, channelId);
       }
-    }
-    notifyListeners();
-  }
-
-  void _handleWebSocketMessage(Map<String, dynamic> message) {
-    switch (message['type']) {
-      case 'new_message':
-        debugPrint('Handling new message event');
-        final messageData = message['message'] as Map<String, dynamic>;
-        // Add channelId from the WebSocket message to the message data
-        messageData['channel_id'] = message['channelId'];
-        final newMessage = Message.fromJson(messageData);
-        debugPrint(
-            'Created new message object for channel ${newMessage.channelId}');
-        debugPrint('Current channel ID: $_currentChannelId');
-
-        final channelMessages = _channelMessages[newMessage.channelId] ?? [];
-        debugPrint('Current messages in channel: ${channelMessages.length}');
-
-        // Check if message already exists
-        if (channelMessages.any((m) => m.id == newMessage.id)) {
-          debugPrint(
-              'Message ${newMessage.id} already exists in channel, skipping');
-          return; // Skip duplicate message
-        }
-
-        // Find the correct position to insert the new message
-        // Messages are ordered from newest (largest ID) to oldest (smallest ID)
-        int insertIndex = channelMessages
-            .indexWhere((m) => m.id.compareTo(newMessage.id) < 0);
-        if (insertIndex == -1) {
-          debugPrint('Adding message ${newMessage.id} to end of list');
-          // If all messages have smaller IDs, append to the end
-          channelMessages.add(newMessage);
-        } else {
-          debugPrint(
-              'Inserting message ${newMessage.id} at position $insertIndex');
-          // Insert before the first message with a larger ID
-          channelMessages.insert(insertIndex, newMessage);
-        }
-        _channelMessages[newMessage.channelId] = channelMessages;
-        debugPrint('Updated messages in channel: ${channelMessages.length}');
-        notifyListeners();
-        break;
-
-      case 'message_updated':
-        final updatedMessage = Message.fromJson(message['message']);
-        final channelMessages = _channelMessages[updatedMessage.channelId];
-        if (channelMessages != null) {
-          final index =
-              channelMessages.indexWhere((m) => m.id == updatedMessage.id);
-          if (index != -1) {
-            channelMessages[index] = updatedMessage;
-            notifyListeners();
-          }
-        }
-        break;
-
-      case 'message_deleted':
-        final messageId = message['messageId'];
-        final channelId = message['channelId'];
-        final channelMessages = _channelMessages[channelId];
-        if (channelMessages != null) {
-          channelMessages.removeWhere((m) => m.id == messageId);
-          notifyListeners();
-        }
-        break;
-    }
-  }
-
-  void setCurrentChannel(String channelId) {
-    debugPrint('Setting current channel to: $channelId');
-    // Initialize channel state if needed
-    if (!_channelMessages.containsKey(channelId)) {
-      debugPrint('Initializing new channel state for: $channelId');
-      _channelMessages[channelId] = [];
-      _channelLoading[channelId] = false;
-      _channelHasMore[channelId] = true;
-    } else {
-      debugPrint(
-          'Channel $channelId already initialized with ${_channelMessages[channelId]?.length} messages');
     }
     notifyListeners();
   }
@@ -342,7 +310,6 @@ class MessageProvider with ChangeNotifier {
 
   @override
   void dispose() {
-    _messageSubscription?.cancel();
     channelProvider.removeListener(_handleChannelChange);
     super.dispose();
   }
