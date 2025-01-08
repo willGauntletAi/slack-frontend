@@ -21,23 +21,6 @@ class DMList extends StatelessWidget {
           title: const Text('New DM'),
           onTap: onCreateDmChannel,
         ),
-        ListTile(
-          dense: true,
-          leading: const Icon(Icons.add_circle_outline, size: 20),
-          title: const Text(
-            'New Message',
-            style: TextStyle(fontSize: 14),
-          ),
-          onTap: () async {
-            // TODO: Show user selection dialog
-            // For now, just show a snackbar
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Coming soon!'),
-              ),
-            );
-          },
-        ),
         // TODO: Add list of DM channels
         // For now, just show a placeholder
         const ListTile(

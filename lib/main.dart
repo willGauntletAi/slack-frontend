@@ -10,6 +10,7 @@ import 'providers/message_provider.dart';
 import 'providers/websocket_provider.dart';
 import 'providers/typing_indicator_provider.dart';
 import 'providers/dm_provider.dart';
+import 'providers/workspace_users_provider.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
 import 'pages/home_page.dart';
@@ -36,6 +37,9 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (_) => WebSocketProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => WorkspaceUsersProvider(),
         ),
         ChangeNotifierProvider(
           create: (context) => TypingIndicatorProvider(

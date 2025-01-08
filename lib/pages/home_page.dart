@@ -7,11 +7,13 @@ import '../providers/channel_provider.dart';
 import '../providers/message_provider.dart';
 import '../providers/websocket_provider.dart';
 import '../providers/dm_provider.dart';
+import '../providers/workspace_users_provider.dart';
 import '../widgets/workspace_list.dart';
 import '../widgets/channel_list.dart';
 import '../widgets/chat_area.dart';
 import '../widgets/dm_list.dart';
 import '../widgets/dm_chat_area.dart';
+import '../widgets/create_dm_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -386,7 +388,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showCreateDmChannelDialog() {
-    // TODO: Implement DM channel creation
+    showDialog(
+      context: context,
+      builder: (context) => const CreateDMDialog(),
+    );
   }
 
   @override
