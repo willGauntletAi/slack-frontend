@@ -7,6 +7,7 @@ class ChatMessage extends StatefulWidget {
   final String username;
   final DateTime timestamp;
   final Function()? onReply;
+  final bool repliable;
 
   const ChatMessage({
     super.key,
@@ -15,6 +16,7 @@ class ChatMessage extends StatefulWidget {
     required this.username,
     required this.timestamp,
     this.onReply,
+    this.repliable = true,
   });
 
   @override
@@ -48,6 +50,9 @@ class _ChatMessageState extends State<ChatMessage> {
   }
 
   void _showOverlay(BuildContext context) {
+    // Only show reply overlay if message is repliable
+    if (!widget.repliable) return;
+
     // Always clean up previous overlay
     _removeGlobalOverlay();
 
@@ -186,7 +191,9 @@ class _ChatMessageState extends State<ChatMessage> {
             _isHovering = true;
             _isMessageHovered = true;
           });
-          _showOverlay(context);
+          if (widget.repliable) {
+            _showOverlay(context);
+          }
         },
         onExit: (_) {
           setState(() {
@@ -207,37 +214,40 @@ class _ChatMessageState extends State<ChatMessage> {
         },
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: messageContent),
-          CompositedTransformTarget(link: _layerLink)
+          if (widget.repliable) CompositedTransformTarget(link: _layerLink)
         ]),
       );
     } else {
       return GestureDetector(
-        onLongPress: () {
-          final RenderBox button = context.findRenderObject() as RenderBox;
-          final Offset offset = button.localToGlobal(Offset.zero);
+        onLongPress: widget.repliable
+            ? () {
+                final RenderBox button =
+                    context.findRenderObject() as RenderBox;
+                final Offset offset = button.localToGlobal(Offset.zero);
 
-          showMenu(
-            context: context,
-            position: RelativeRect.fromLTRB(
-              offset.dx,
-              offset.dy,
-              offset.dx + button.size.width,
-              offset.dy + button.size.height,
-            ),
-            items: [
-              PopupMenuItem(
-                onTap: widget.onReply,
-                child: const Row(
-                  children: [
-                    Icon(Icons.reply),
-                    SizedBox(width: 8),
-                    Text('Reply'),
+                showMenu(
+                  context: context,
+                  position: RelativeRect.fromLTRB(
+                    offset.dx,
+                    offset.dy,
+                    offset.dx + button.size.width,
+                    offset.dy + button.size.height,
+                  ),
+                  items: [
+                    PopupMenuItem(
+                      onTap: widget.onReply,
+                      child: const Row(
+                        children: [
+                          Icon(Icons.reply),
+                          SizedBox(width: 8),
+                          Text('Reply'),
+                        ],
+                      ),
+                    ),
                   ],
-                ),
-              ),
-            ],
-          );
-        },
+                );
+              }
+            : null,
         child: messageContent,
       );
     }

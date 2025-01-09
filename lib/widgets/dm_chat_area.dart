@@ -6,6 +6,7 @@ import '../providers/dm_provider.dart';
 import '../providers/websocket_provider.dart';
 import '../providers/typing_indicator_provider.dart';
 import 'chat_message.dart';
+import 'thread_panel.dart';
 
 class DMChatArea extends StatefulWidget {
   const DMChatArea({super.key});
@@ -20,6 +21,7 @@ class _DMChatAreaState extends State<DMChatArea> {
   late final DMProvider _dmProvider;
   DateTime? _lastTypingIndicatorSent;
   bool _isSubmittingMessage = false;
+  DirectMessage? _selectedThreadMessage;
   static const _typingThrottleDuration = Duration(milliseconds: 1000);
 
   @override
@@ -131,110 +133,131 @@ class _DMChatAreaState extends State<DMChatArea> {
       );
     }
 
-    return Column(
+    final topLevelMessages = messages.where((m) => m.parentId == null).toList();
+    return Row(
       children: [
         Expanded(
-          child: Consumer<DMProvider>(
-            builder: (context, dmProvider, _) {
-              if (dmProvider.messages.isEmpty && dmProvider.isLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          child: Column(
+            children: [
+              Expanded(
+                child: Consumer<DMProvider>(
+                  builder: (context, dmProvider, _) {
+                    if (dmProvider.messages.isEmpty && dmProvider.isLoading) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-              if (dmProvider.messages.isEmpty) {
-                return const Center(
-                  child: Text('No messages yet'),
-                );
-              }
+                    if (dmProvider.messages.isEmpty) {
+                      return const Center(
+                        child: Text('No messages yet'),
+                      );
+                    }
 
-              return ListView.builder(
-                controller: _scrollController,
-                reverse: true,
-                padding: const EdgeInsets.all(8.0),
-                itemCount: messages.length + (dmProvider.isLoading ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (dmProvider.isLoading && index == messages.length) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+                    return ListView.builder(
+                      controller: _scrollController,
+                      reverse: true,
+                      padding: const EdgeInsets.all(8.0),
+                      itemCount: topLevelMessages.length +
+                          (dmProvider.isLoading ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (dmProvider.isLoading &&
+                            index == topLevelMessages.length) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        }
 
-                  final message = messages[index];
-                  final isMe = message.userId == currentUser?.id;
+                        final message = topLevelMessages[index];
+                        final isMe = message.userId == currentUser?.id;
 
-                  return ChatMessage(
-                    text: message.content,
-                    isMe: isMe,
-                    username: message.username,
-                    timestamp: message.createdAt,
-                    onReply: () {
-                      // TODO: Implement reply functionality
-                      debugPrint('Reply to message: ${message.id}');
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        ),
-        if (currentUser != null)
-          Consumer<TypingIndicatorProvider>(
-            builder: (context, typingProvider, _) {
-              final typingUsers = typingProvider.getTypingUsernames(
-                selectedChannel.id,
-                currentUser.id,
-              );
-              if (typingUsers.isEmpty) return const SizedBox.shrink();
-
-              return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  typingUsers.length == 1
-                      ? '${typingUsers.first} is typing...'
-                      : typingUsers.length == 2
-                          ? '${typingUsers.join(' and ')} are typing...'
-                          : '${typingUsers.length} people are typing...',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey,
-                    fontStyle: FontStyle.italic,
-                  ),
+                        return ChatMessage(
+                          text: message.content,
+                          isMe: isMe,
+                          username: message.username,
+                          timestamp: message.createdAt,
+                          onReply: () {
+                            setState(() {
+                              _selectedThreadMessage = message;
+                            });
+                          },
+                        );
+                      },
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        Container(
-          decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            border: Border(
-              top: BorderSide(
-                color: Theme.of(context).dividerColor,
               ),
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: const InputDecoration(
-                      hintText: 'Send a message',
-                      border: InputBorder.none,
+              if (currentUser != null)
+                Consumer<TypingIndicatorProvider>(
+                  builder: (context, typingProvider, _) {
+                    final typingUsers = typingProvider.getTypingUsernames(
+                      selectedChannel.id,
+                      currentUser.id,
+                    );
+                    if (typingUsers.isEmpty) return const SizedBox.shrink();
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 4),
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        typingUsers.length == 1
+                            ? '${typingUsers.first} is typing...'
+                            : typingUsers.length == 2
+                                ? '${typingUsers.join(' and ')} are typing...'
+                                : '${typingUsers.length} people are typing...',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(context).dividerColor,
                     ),
-                    onSubmitted: _handleSubmitted,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () => _handleSubmitted(_messageController.text),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          decoration: const InputDecoration(
+                            hintText: 'Send a message',
+                            border: InputBorder.none,
+                          ),
+                          onSubmitted: _handleSubmitted,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.send),
+                        onPressed: () =>
+                            _handleSubmitted(_messageController.text),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 8),
+            ],
           ),
         ),
-        // Add padding at the bottom to prevent snackbar overlap
-        const SizedBox(height: 8),
+        if (_selectedThreadMessage != null)
+          ThreadPanel(
+            dmParentMessage: _selectedThreadMessage,
+            isDM: true,
+            onClose: () {
+              setState(() {
+                _selectedThreadMessage = null;
+              });
+            },
+          ),
       ],
     );
   }

@@ -57,6 +57,8 @@ class MessageProvider with ChangeNotifier {
   final Map<String, String?> _channelLastMessageIds = {};
   // Map of channelId to hasMore state
   final Map<String, bool> _channelHasMore = {};
+  // Set of in-progress requests (channelId + lastMessageId)
+  final Set<String> _inProgressRequests = {};
   String? get _currentChannelId => channelProvider.selectedChannel?.id;
 
   MessageProvider(
@@ -169,22 +171,37 @@ class MessageProvider with ChangeNotifier {
   Future<void> loadMessages(String accessToken, String channelId,
       {int limit = 50}) async {
     debugPrint('Loading messages for channel: $channelId');
-    if (_channelLoading[channelId] == true) {
-      debugPrint('Already loading messages for channel: $channelId');
+
+    String? lastMessageId;
+    if (_channelMessages[channelId] != null &&
+        _channelMessages[channelId]!.isNotEmpty) {
+      lastMessageId = _channelMessages[channelId]!.last.id;
+    }
+
+    // Create a unique request identifier
+    final requestId = '${channelId}_${lastMessageId ?? "initial"}';
+
+    // Check if this exact request is already in progress
+    if (_inProgressRequests.contains(requestId)) {
+      debugPrint(
+          'Request already in progress for channel: $channelId with lastMessageId: $lastMessageId');
       return;
     }
 
+    _inProgressRequests.add(requestId);
     _channelLoading[channelId] = true;
     _channelErrors[channelId] = null;
     notifyListeners();
 
     try {
       var url = '${ApiConfig.baseUrl}/message/channel/$channelId?limit=$limit';
-      final lastMessageId = _channelLastMessageIds[channelId];
       if (lastMessageId != null) {
         url += '&before=$lastMessageId';
+        debugPrint(
+            'Fetching messages from: $url with beforeKey: $lastMessageId');
+      } else {
+        debugPrint('Fetching messages from: $url with no beforeKey');
       }
-      debugPrint('Fetching messages from: $url');
 
       final response = await http.get(
         Uri.parse(url),
@@ -204,14 +221,22 @@ class MessageProvider with ChangeNotifier {
           _channelHasMore[channelId] = false;
         } else {
           final channelMessages = _channelMessages[channelId] ?? [];
+
+          // Filter out any duplicate messages
+          final existingIds = channelMessages.map((m) => m.id).toSet();
+          final uniqueNewMessages =
+              newMessages.where((m) => !existingIds.contains(m.id)).toList();
+
           debugPrint(
-              'Adding ${newMessages.length} messages to existing ${channelMessages.length} messages');
-          channelMessages.addAll(newMessages);
+              'Adding ${uniqueNewMessages.length} unique messages to existing ${channelMessages.length} messages');
+          channelMessages.addAll(uniqueNewMessages);
+
+          // Sort messages by ID to ensure correct order
+          channelMessages.sort((a, b) => b.id.compareTo(a.id));
+
           _channelMessages[channelId] = channelMessages;
-          _channelLastMessageIds[channelId] = newMessages.last.id;
+          _channelLastMessageIds[channelId] = channelMessages.last.id;
           notifyListeners();
-          debugPrint(
-              'Updated channel messages count: ${channelMessages.length}');
         }
 
         _channelErrors[channelId] = null;
@@ -224,6 +249,7 @@ class MessageProvider with ChangeNotifier {
       debugPrint('Error loading messages: $e');
       _channelErrors[channelId] = 'Network error occurred';
     } finally {
+      _inProgressRequests.remove(requestId);
       _channelLoading[channelId] = false;
       notifyListeners();
     }

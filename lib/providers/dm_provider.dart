@@ -13,6 +13,8 @@ class DirectMessage {
   final String username;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? parentId;
+  final String channelId;
 
   DirectMessage({
     required this.id,
@@ -21,6 +23,8 @@ class DirectMessage {
     required this.username,
     required this.createdAt,
     required this.updatedAt,
+    required this.parentId,
+    required this.channelId,
   });
 
   factory DirectMessage.fromJson(Map<String, dynamic> json) {
@@ -31,6 +35,8 @@ class DirectMessage {
       username: json['username'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
+      parentId: json['parent_id'],
+      channelId: json['channel_id'],
     );
   }
 }
@@ -110,9 +116,10 @@ class DMProvider with ChangeNotifier {
   void _setupWebSocketListener() {
     _wsSubscription = _wsProvider.messageStream.listen((data) {
       switch (data['type']) {
-        case 'new_dm':
+        case 'new_direct_message':
           debugPrint('Handling new DM event');
           final messageData = data['message'] as Map<String, dynamic>;
+          messageData['channel_id'] = data['channelId'];
           handleNewMessage(messageData);
           break;
 
@@ -254,7 +261,8 @@ class DMProvider with ChangeNotifier {
   }
 
   Future<DirectMessage?> sendMessage(
-      String accessToken, String channelId, String content) async {
+      String accessToken, String channelId, String content,
+      {String? parentId}) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/dm/$channelId/messages'),
@@ -264,6 +272,7 @@ class DMProvider with ChangeNotifier {
         },
         body: json.encode({
           'content': content,
+          'parent_id': parentId,
         }),
       );
 
