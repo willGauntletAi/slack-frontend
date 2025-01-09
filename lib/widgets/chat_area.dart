@@ -134,6 +134,15 @@ class _ChatAreaState extends State<ChatArea> {
     return reactionCounts;
   }
 
+  Set<String> _buildMyReactionsSet(
+      List<MessageReaction> reactions, String? userId) {
+    if (userId == null) return {};
+    return reactions
+        .where((reaction) => reaction.userId == userId)
+        .map((reaction) => reaction.emoji)
+        .toSet();
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedWorkspace =
@@ -342,10 +351,27 @@ class _ChatAreaState extends State<ChatArea> {
                               _selectedThreadMessage = message;
                             });
                           },
-                          onReaction: (emoji) {
-                            _messageProvider.addReaction(message.id, emoji);
+                          onReaction: (emoji) async {
+                            final authProvider = context.read<AuthProvider>();
+                            if (authProvider.accessToken == null) return;
+
+                            final hasReaction = message.reactions.where((r) =>
+                                r.userId == currentUser?.id &&
+                                r.emoji == emoji);
+
+                            if (hasReaction.isNotEmpty) {
+                              // Remove reaction - pass the reaction ID
+                              await _messageProvider.removeReaction(
+                                  message.id, hasReaction.first.id);
+                            } else {
+                              // Add reaction
+                              await _messageProvider.addReaction(
+                                  message.id, emoji);
+                            }
                           },
                           reactions: _buildReactionsMap(message.reactions),
+                          myReactions: _buildMyReactionsSet(
+                              message.reactions, currentUser?.id),
                         );
                       },
                     );

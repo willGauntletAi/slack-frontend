@@ -405,6 +405,12 @@
           },
           "updated_at": {
             "type": "string"
+          },
+          "usernames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -412,7 +418,8 @@
           "name",
           "is_private",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "usernames"
         ]
       },
       "ListChannelsResponse": {
@@ -517,6 +524,12 @@
           },
           "updated_at": {
             "type": "string"
+          },
+          "usernames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "required": [
@@ -524,7 +537,8 @@
           "name",
           "is_private",
           "created_at",
-          "updated_at"
+          "updated_at",
+          "usernames"
         ]
       },
       "CreateMessageResponse": {
@@ -709,6 +723,17 @@
           "message_id",
           "user_id",
           "created_at"
+        ]
+      },
+      "DeleteReactionResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
         ]
       }
     },
@@ -2017,12 +2042,11 @@
                     "items": {
                       "type": "string"
                     },
-                    "minItems": 1
+                    "default": []
                   }
                 },
                 "required": [
-                  "name",
-                  "member_ids"
+                  "name"
                 ]
               }
             }
@@ -3124,6 +3148,105 @@
           },
           "404": {
             "description": "Message not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/message/{id}/reaction/{reactionId}": {
+      "delete": {
+        "tags": [
+          "messages"
+        ],
+        "summary": "Delete a reaction from a message",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Message ID"
+          },
+          {
+            "name": "reactionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Reaction ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reaction deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteReactionResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not authorized to delete this reaction",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Reaction not found",
             "content": {
               "application/json": {
                 "schema": {

@@ -64,13 +64,21 @@ export const presenceMessageSchema = z.object({
 export const reactionMessageSchema = z.object({
   type: z.literal('reaction'),
   channelId: z.string().uuid(),
-  messageId: z.string().uuid(),
-  id: z.string().uuid(),
+  messageId: z.string(),
+  id: z.string(),
   userId: z.string().uuid(),
   username: z.string(),
   emoji: z.string(),
 }).openapi({
   description: 'Reaction event',
+});
+
+export const deleteReactionMessageSchema = z.object({
+  type: z.literal('delete_reaction'),
+  channelId: z.string().uuid(),
+  reactionId: z.string(),
+}).openapi({
+  description: 'Reaction deletion event',
 });
 
 export const serverMessageSchema = z.discriminatedUnion('type', [
@@ -79,6 +87,7 @@ export const serverMessageSchema = z.discriminatedUnion('type', [
   typingMessageSchema,
   presenceMessageSchema,
   reactionMessageSchema,
+  deleteReactionMessageSchema,
 ]).or(errorMessageSchema);
 
 // Type exports
@@ -88,4 +97,5 @@ export type NewMessageEvent = z.infer<typeof newMessageSchema>;
 export type ConnectedMessage = z.infer<typeof connectedMessageSchema>;
 export type ErrorMessage = z.infer<typeof errorMessageSchema>;
 export type PresenceMessage = z.infer<typeof presenceMessageSchema>;
-export type ReactionMessage = z.infer<typeof reactionMessageSchema>; 
+export type ReactionMessage = z.infer<typeof reactionMessageSchema>;
+export type DeleteReactionMessage = z.infer<typeof deleteReactionMessageSchema>; 

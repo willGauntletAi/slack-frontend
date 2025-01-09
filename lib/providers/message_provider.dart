@@ -142,6 +142,11 @@ class MessageProvider with ChangeNotifier {
           debugPrint('Handling reaction event');
           handleReactionEvent(data);
           break;
+
+        case 'delete_reaction':
+          debugPrint('Handling delete reaction event');
+          handleDeleteReactionEvent(data);
+          break;
       }
     });
   }
@@ -446,6 +451,31 @@ class MessageProvider with ChangeNotifier {
     }
   }
 
+  Future<void> removeReaction(String messageId, String reactionId) async {
+    final accessToken = authProvider.accessToken;
+    if (accessToken == null) return;
+
+    try {
+      final response = await http.delete(
+        Uri.parse(
+            '${ApiConfig.baseUrl}/message/$messageId/reaction/$reactionId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        debugPrint('Reaction removed successfully');
+      } else {
+        final error = json.decode(response.body);
+        debugPrint('Error removing reaction: ${error['error']}');
+      }
+    } catch (e) {
+      debugPrint('Error removing reaction: $e');
+    }
+  }
+
   void handleReactionEvent(Map<String, dynamic> data) {
     final messageId = data['messageId'];
     final channelId = data['channelId'];
@@ -482,29 +512,40 @@ class MessageProvider with ChangeNotifier {
     }
   }
 
-  Future<void> removeReaction(String messageId, String reactionId) async {
-    final accessToken = authProvider.accessToken;
-    if (accessToken == null) return;
+  void handleDeleteReactionEvent(Map<String, dynamic> data) {
+    // Matches deleteReactionMessageSchema from ws-types.ts
+    final channelId = data['channelId'];
+    final reactionId = data['reactionId'];
 
-    try {
-      final response = await http.delete(
-        Uri.parse(
-            '${ApiConfig.baseUrl}/message/$messageId/reaction/$reactionId'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $accessToken',
-        },
-      );
+    final channelMessages = _channelMessages[channelId];
+    if (channelMessages != null) {
+      // Find the message that contains this reaction
+      for (var i = 0; i < channelMessages.length; i++) {
+        final message = channelMessages[i];
+        final reactionIndex =
+            message.reactions.indexWhere((r) => r.id == reactionId);
 
-      if (response.statusCode == 200) {
-        // The websocket will handle updating the UI
-        debugPrint('Reaction removed successfully');
-      } else {
-        final error = json.decode(response.body);
-        debugPrint('Error removing reaction: ${error['error']}');
+        if (reactionIndex != -1) {
+          // Found the message with this reaction
+          final updatedReactions = List<MessageReaction>.from(message.reactions)
+            ..removeAt(reactionIndex);
+
+          channelMessages[i] = Message(
+            id: message.id,
+            content: message.content,
+            parentId: message.parentId,
+            createdAt: message.createdAt,
+            updatedAt: message.updatedAt,
+            userId: message.userId,
+            username: message.username,
+            channelId: message.channelId,
+            reactions: updatedReactions,
+          );
+
+          notifyListeners();
+          break;
+        }
       }
-    } catch (e) {
-      debugPrint('Error removing reaction: $e');
     }
   }
 

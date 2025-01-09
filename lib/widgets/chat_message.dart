@@ -11,6 +11,7 @@ class ChatMessage extends StatefulWidget {
   final Function(String emoji)? onReaction;
   final bool repliable;
   final Map<String, int>? reactions;
+  final Set<String>? myReactions;
 
   const ChatMessage({
     super.key,
@@ -22,6 +23,7 @@ class ChatMessage extends StatefulWidget {
     this.onReaction,
     this.repliable = true,
     this.reactions,
+    this.myReactions,
   });
 
   @override
@@ -216,29 +218,37 @@ class _ChatMessageState extends State<ChatMessage> {
   }
 
   Widget _buildReactions() {
-    if (widget.reactions == null || widget.reactions!.isEmpty)
+    if (widget.reactions == null || widget.reactions!.isEmpty) {
       return const SizedBox.shrink();
+    }
 
     return Wrap(
       spacing: 4,
       children: widget.reactions!.entries.map((entry) {
-        return Container(
-          margin: const EdgeInsets.only(top: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(entry.key),
-              const SizedBox(width: 4),
-              Text(
-                entry.value.toString(),
-                style: const TextStyle(fontSize: 12),
-              ),
-            ],
+        final isMyReaction = widget.myReactions?.contains(entry.key) ?? false;
+        return InkWell(
+          onTap: () {
+            // Call onReaction to toggle the reaction
+            widget.onReaction?.call(entry.key);
+          },
+          child: Container(
+            margin: const EdgeInsets.only(top: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: isMyReaction ? Colors.blue[100] : Colors.grey[200],
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(entry.key),
+                const SizedBox(width: 4),
+                Text(
+                  entry.value.toString(),
+                  style: const TextStyle(fontSize: 12),
+                ),
+              ],
+            ),
           ),
         );
       }).toList(),
