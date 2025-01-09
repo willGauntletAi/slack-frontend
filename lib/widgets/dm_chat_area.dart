@@ -164,6 +164,10 @@ class _DMChatAreaState extends State<DMChatArea> {
                     isMe: isMe,
                     username: message.username,
                     timestamp: message.createdAt,
+                    onReply: () {
+                      // TODO: Implement reply functionality
+                      debugPrint('Reply to message: ${message.id}');
+                    },
                   );
                 },
               );
