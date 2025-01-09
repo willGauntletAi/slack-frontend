@@ -188,7 +188,7 @@ class DMProvider with ChangeNotifier {
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
-        debugPrint('DM channel data: $response.body');
+        debugPrint('DM channel data: ${response.body.toString()}');
         debugPrint('DM channel created successfully');
         return DMChannel.fromJson(data);
       } else {

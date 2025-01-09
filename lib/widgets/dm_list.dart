@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:slack_frontend/providers/channel_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/dm_provider.dart';
-import '../providers/workspace_users_provider.dart';
-import '../providers/workspace_provider.dart';
 
 class DMList extends StatelessWidget {
   final void Function() onCreateDmChannel;
@@ -13,10 +12,8 @@ class DMList extends StatelessWidget {
   Widget build(BuildContext context) {
     final dmProvider = context.watch<DMProvider>();
     final authProvider = context.watch<AuthProvider>();
-    final workspaceUsersProvider = context.watch<WorkspaceUsersProvider>();
-    final workspaceProvider = context.watch<WorkspaceProvider>();
     final currentUser = authProvider.currentUser;
-    final currentWorkspaceId = workspaceProvider.selectedWorkspace?.id ?? '';
+    final channelProvider = context.read<ChannelProvider>();
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -46,18 +43,21 @@ class DMList extends StatelessWidget {
             );
 
             final isSelected = dmProvider.selectedChannel?.id == channel.id;
-
+            debugPrint('selectedChannel is ${dmProvider.selectedChannel?.id}');
             return ListTile(
-              selected: isSelected,
-              leading: const Icon(Icons.person_outline),
-              title: Text(
-                usernames.join(', '),
-                style: TextStyle(
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                selected: isSelected,
+                leading: const Icon(Icons.person_outline),
+                title: Text(
+                  usernames.join(', '),
+                  style: TextStyle(
+                    fontWeight:
+                        isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
                 ),
-              ),
-              onTap: () => dmProvider.selectChannel(channel),
-            );
+                onTap: () => {
+                      dmProvider.selectChannel(channel),
+                      channelProvider.selectChannel(null),
+                    });
           }),
       ],
     );
