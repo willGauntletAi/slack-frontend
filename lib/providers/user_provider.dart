@@ -7,24 +7,27 @@ class User {
   final String id;
   final String username;
   final String email;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   User({
     required this.id,
     required this.username,
     required this.email,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    String? createdAtStr = json['created_at'] ?? json['createdAt'];
+    String? updatedAtStr = json['updated_at'] ?? json['updatedAt'];
+
     return User(
       id: json['id'],
       username: json['username'],
       email: json['email'],
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      createdAt: createdAtStr != null ? DateTime.parse(createdAtStr) : null,
+      updatedAt: updatedAtStr != null ? DateTime.parse(updatedAtStr) : null,
     );
   }
 }

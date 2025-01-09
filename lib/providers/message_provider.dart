@@ -16,6 +16,7 @@ class Message {
   final String userId;
   final String username;
   final String channelId;
+  final List<MessageReaction> reactions;
 
   Message({
     required this.id,
@@ -26,9 +27,15 @@ class Message {
     required this.userId,
     required this.username,
     required this.channelId,
+    required this.reactions,
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
+    final List<MessageReaction> reactions =
+        (json['reactions'] as List<dynamic>? ?? [])
+            .map((reactionJson) => MessageReaction.fromJson(reactionJson))
+            .toList();
+
     return Message(
       id: json['id'],
       content: json['content'],
@@ -38,6 +45,46 @@ class Message {
       userId: json['user_id'],
       username: json['username'],
       channelId: json['channel_id'],
+      reactions: reactions,
+    );
+  }
+}
+
+class MessageReaction {
+  final String id;
+  final String emoji;
+  final String userId;
+  final String username;
+  final String messageId;
+
+  MessageReaction({
+    required this.id,
+    required this.emoji,
+    required this.userId,
+    required this.username,
+    required this.messageId,
+  });
+
+  // For API responses
+  factory MessageReaction.fromJson(Map<String, dynamic> json) {
+    return MessageReaction(
+      id: json['id'],
+      emoji: json['emoji'],
+      userId: json['user_id'],
+      username: json['username'],
+      messageId: json['message_id'],
+    );
+  }
+
+  // For WebSocket events
+  factory MessageReaction.fromWebSocket(
+      Map<String, dynamic> json, String messageId) {
+    return MessageReaction(
+      id: json['id'],
+      emoji: json['emoji'],
+      userId: json['user_id'],
+      username: json['username'],
+      messageId: messageId,
     );
   }
 }
@@ -89,6 +136,11 @@ class MessageProvider with ChangeNotifier {
             data['messageId'],
             data['channelId'],
           );
+          break;
+
+        case 'reaction':
+          debugPrint('Handling reaction event');
+          handleReactionEvent(data);
           break;
       }
     });
@@ -232,7 +284,8 @@ class MessageProvider with ChangeNotifier {
           channelMessages.addAll(uniqueNewMessages);
 
           // Sort messages by ID to ensure correct order
-          channelMessages.sort((a, b) => b.id.compareTo(a.id));
+          channelMessages
+              .sort((a, b) => int.parse(b.id).compareTo(int.parse(a.id)));
 
           _channelMessages[channelId] = channelMessages;
           _channelLastMessageIds[channelId] = channelMessages.last.id;
@@ -364,6 +417,94 @@ class MessageProvider with ChangeNotifier {
         _channelErrors[_currentChannelId!] = 'Network error occurred';
       }
       return false;
+    }
+  }
+
+  Future<void> addReaction(String messageId, String emoji) async {
+    final accessToken = authProvider.accessToken;
+    if (accessToken == null) return;
+
+    try {
+      final response = await http.post(
+        Uri.parse('${ApiConfig.baseUrl}/message/$messageId/reaction'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: json.encode({'emoji': emoji}),
+      );
+
+      if (response.statusCode == 201) {
+        // The websocket will handle updating the UI
+        debugPrint('Reaction added successfully');
+      } else {
+        final error = json.decode(response.body);
+        debugPrint('Error adding reaction: ${error['error']}');
+      }
+    } catch (e) {
+      debugPrint('Error adding reaction: $e');
+    }
+  }
+
+  void handleReactionEvent(Map<String, dynamic> data) {
+    final messageId = data['messageId'];
+    final channelId = data['channelId'];
+    final reaction = MessageReaction(
+      id: data['id'],
+      emoji: data['emoji'],
+      userId: data['userId'],
+      username: data['username'],
+      messageId: messageId,
+    );
+
+    final channelMessages = _channelMessages[channelId];
+    if (channelMessages != null) {
+      final messageIndex = channelMessages.indexWhere((m) => m.id == messageId);
+      if (messageIndex != -1) {
+        final message = channelMessages[messageIndex];
+        final updatedReactions = List<MessageReaction>.from(message.reactions)
+          ..add(reaction);
+
+        channelMessages[messageIndex] = Message(
+          id: message.id,
+          content: message.content,
+          parentId: message.parentId,
+          createdAt: message.createdAt,
+          updatedAt: message.updatedAt,
+          userId: message.userId,
+          username: message.username,
+          channelId: message.channelId,
+          reactions: updatedReactions,
+        );
+
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> removeReaction(String messageId, String reactionId) async {
+    final accessToken = authProvider.accessToken;
+    if (accessToken == null) return;
+
+    try {
+      final response = await http.delete(
+        Uri.parse(
+            '${ApiConfig.baseUrl}/message/$messageId/reaction/$reactionId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // The websocket will handle updating the UI
+        debugPrint('Reaction removed successfully');
+      } else {
+        final error = json.decode(response.body);
+        debugPrint('Error removing reaction: ${error['error']}');
+      }
+    } catch (e) {
+      debugPrint('Error removing reaction: $e');
     }
   }
 

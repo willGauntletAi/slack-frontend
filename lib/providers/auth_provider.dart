@@ -49,11 +49,22 @@ class AuthProvider extends ChangeNotifier {
     required String refreshToken,
     required Map<String, dynamic> userData,
   }) async {
-    await _authService.saveRefreshToken(refreshToken);
-    await _authService.saveUserData(userData);
-    _accessToken = accessToken;
-    _currentUser = User.fromJson(userData);
-    _isAuthenticated = true;
+    debugPrint('🔑 Auth: Setting tokens and user data');
+
+    try {
+      await _authService.saveRefreshToken(refreshToken);
+      await _authService.saveUserData(userData);
+      _accessToken = accessToken;
+      _currentUser = User.fromJson(userData);
+      _isAuthenticated = true;
+      debugPrint('✅ Auth: Successfully set tokens and user data');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Auth: Error setting tokens - $e');
+      if (e is! FormatException) {
+        debugPrint('Stack trace: $stackTrace');
+      }
+      rethrow;
+    }
     notifyListeners();
   }
 

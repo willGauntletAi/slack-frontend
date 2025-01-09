@@ -125,6 +125,15 @@ class _ChatAreaState extends State<ChatArea> {
     }
   }
 
+  Map<String, int> _buildReactionsMap(List<MessageReaction> reactions) {
+    final Map<String, int> reactionCounts = {};
+    for (final reaction in reactions) {
+      reactionCounts[reaction.emoji] =
+          (reactionCounts[reaction.emoji] ?? 0) + 1;
+    }
+    return reactionCounts;
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedWorkspace =
@@ -333,6 +342,10 @@ class _ChatAreaState extends State<ChatArea> {
                               _selectedThreadMessage = message;
                             });
                           },
+                          onReaction: (emoji) {
+                            _messageProvider.addReaction(message.id, emoji);
+                          },
+                          reactions: _buildReactionsMap(message.reactions),
                         );
                       },
                     );

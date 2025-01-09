@@ -32,6 +32,8 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
+      debugPrint('🔐 Login: Attempting login...');
+
       final response = await http.post(
         Uri.parse(ApiConfig.loginUrl),
         headers: {'Content-Type': 'application/json'},
@@ -44,6 +46,24 @@ class _LoginPageState extends State<LoginPage> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
+        // Validate response structure
+        if (data['accessToken'] == null ||
+            data['refreshToken'] == null ||
+            data['user'] == null) {
+          debugPrint('❌ Login: Invalid response structure');
+          throw FormatException('Invalid response format from server');
+        }
+
+        // Validate user object structure
+        final user = data['user'] as Map<String, dynamic>;
+        if (user['id'] == null ||
+            user['username'] == null ||
+            user['email'] == null) {
+          debugPrint('❌ Login: Invalid user object structure');
+          throw FormatException('Invalid user format from server');
+        }
+
+        debugPrint('✅ Login: Successful');
         if (mounted) {
           await context.read<AuthProvider>().setTokens(
                 accessToken: data['accessToken'],
@@ -57,13 +77,22 @@ class _LoginPageState extends State<LoginPage> {
         }
       } else {
         final error = json.decode(response.body);
+        debugPrint('❌ Login: Failed - ${error['error']}');
         setState(() {
           _errorMessage = error['error'] ?? 'Login failed';
         });
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ Login: Error - $e');
+      if (e is! FormatException) {
+        debugPrint('Stack trace: $stackTrace');
+      }
       setState(() {
-        _errorMessage = 'Network error occurred';
+        if (e is FormatException) {
+          _errorMessage = e.message;
+        } else {
+          _errorMessage = 'Network error occurred';
+        }
       });
     } finally {
       if (mounted) {
