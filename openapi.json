@@ -565,6 +565,32 @@
           },
           "channel_id": {
             "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file_key": {
+                  "type": "string"
+                },
+                "filename": {
+                  "type": "string"
+                },
+                "mime_type": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "file_key",
+                "filename",
+                "mime_type",
+                "size"
+              ]
+            }
           }
         },
         "required": [
@@ -574,7 +600,8 @@
           "created_at",
           "updated_at",
           "user_id",
-          "channel_id"
+          "channel_id",
+          "attachments"
         ]
       },
       "ListMessagesResponse": {
@@ -636,6 +663,32 @@
                   "username"
                 ]
               }
+            },
+            "attachments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "file_key": {
+                    "type": "string"
+                  },
+                  "filename": {
+                    "type": "string"
+                  },
+                  "mime_type": {
+                    "type": "string"
+                  },
+                  "size": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "file_key",
+                  "filename",
+                  "mime_type",
+                  "size"
+                ]
+              }
             }
           },
           "required": [
@@ -647,7 +700,8 @@
             "user_id",
             "username",
             "channel_id",
-            "reactions"
+            "reactions",
+            "attachments"
           ]
         }
       },
@@ -675,6 +729,32 @@
           },
           "channel_id": {
             "type": "string"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "file_key": {
+                  "type": "string"
+                },
+                "filename": {
+                  "type": "string"
+                },
+                "mime_type": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "file_key",
+                "filename",
+                "mime_type",
+                "size"
+              ]
+            }
           }
         },
         "required": [
@@ -684,7 +764,8 @@
           "created_at",
           "updated_at",
           "user_id",
-          "channel_id"
+          "channel_id",
+          "attachments"
         ]
       },
       "DeleteMessageResponse": {
@@ -2661,6 +2742,33 @@
                   },
                   "parent_id": {
                     "type": "string"
+                  },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "file_key": {
+                          "type": "string"
+                        },
+                        "filename": {
+                          "type": "string"
+                        },
+                        "mime_type": {
+                          "type": "string"
+                        },
+                        "size": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "file_key",
+                        "filename",
+                        "mime_type",
+                        "size"
+                      ]
+                    },
+                    "default": []
                   }
                 },
                 "required": [
@@ -2858,6 +2966,33 @@
                   "content": {
                     "type": "string",
                     "minLength": 1
+                  },
+                  "attachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "file_key": {
+                          "type": "string"
+                        },
+                        "filename": {
+                          "type": "string"
+                        },
+                        "mime_type": {
+                          "type": "string"
+                        },
+                        "size": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "file_key",
+                        "filename",
+                        "mime_type",
+                        "size"
+                      ]
+                    },
+                    "default": []
                   }
                 },
                 "required": [
@@ -3247,6 +3382,179 @@
           },
           "404": {
             "description": "Reaction not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file/upload-url": {
+      "post": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Get a presigned URL for uploading a file",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "fileName": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "fileName"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    },
+                    "key": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "url",
+                    "key"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/file/{key}/download-url": {
+      "get": {
+        "tags": [
+          "files"
+        ],
+        "summary": "Get a presigned URL for downloading a file",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "File key in S3"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Download URL generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri"
+                    }
+                  },
+                  "required": [
+                    "url"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found",
             "content": {
               "application/json": {
                 "schema": {

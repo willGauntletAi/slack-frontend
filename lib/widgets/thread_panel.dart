@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/message_provider.dart';
 import 'chat_message.dart';
+import 'message_input.dart';
 
 class ThreadPanel extends StatefulWidget {
   final Message? parentMessage;
@@ -152,36 +153,9 @@ class _ThreadPanelState extends State<ThreadPanel> {
             ),
           ),
           // Message input
-          Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              border: Border(
-                top: BorderSide(
-                  color: Theme.of(context).dividerColor,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: const InputDecoration(
-                        hintText: 'Reply in thread',
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: _handleSubmitted,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: () => _handleSubmitted(_messageController.text),
-                  ),
-                ],
-              ),
-            ),
+          MessageInput(
+            onSubmitted: _handleSubmitted,
+            hintText: 'Reply in thread',
           ),
           const SizedBox(height: 8),
         ],

@@ -76,6 +76,7 @@ export const reactionMessageSchema = z.object({
 export const deleteReactionMessageSchema = z.object({
   type: z.literal('delete_reaction'),
   channelId: z.string().uuid(),
+  messageId: z.string(),
   reactionId: z.string(),
 }).openapi({
   description: 'Reaction deletion event',

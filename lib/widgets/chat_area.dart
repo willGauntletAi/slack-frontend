@@ -9,6 +9,7 @@ import '../providers/websocket_provider.dart';
 import '../providers/typing_indicator_provider.dart';
 import 'chat_message.dart';
 import 'thread_panel.dart';
+import 'message_input.dart';
 
 class ChatArea extends StatefulWidget {
   const ChatArea({super.key});
@@ -406,37 +407,9 @@ class _ChatAreaState extends State<ChatArea> {
                     );
                   },
                 ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  border: Border(
-                    top: BorderSide(
-                      color: Theme.of(context).dividerColor,
-                    ),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          decoration: const InputDecoration(
-                            hintText: 'Send a message',
-                            border: InputBorder.none,
-                          ),
-                          onSubmitted: _handleSubmitted,
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.send),
-                        onPressed: () =>
-                            _handleSubmitted(_messageController.text),
-                      ),
-                    ],
-                  ),
-                ),
+              MessageInput(
+                onSubmitted: _handleSubmitted,
+                hintText: 'Send a message',
               ),
               const SizedBox(height: 8),
             ],
