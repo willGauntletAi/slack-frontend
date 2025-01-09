@@ -32,26 +32,9 @@ class _HomePageState extends State<HomePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         final authProvider = context.read<AuthProvider>();
-        final wsProvider = context.read<WebSocketProvider>();
-        if (authProvider.accessToken != null && !wsProvider.isConnected) {
-          // Connect to WebSocket first
-          try {
-            await wsProvider.connect(authProvider.accessToken!);
-          } catch (e) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Failed to connect to WebSocket: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
-            }
-          }
-
-          // Then fetch workspaces
-          if (mounted) {
-            await _workspaceProvider.fetchWorkspaces(authProvider.accessToken!);
-          }
+        if (authProvider.accessToken != null) {
+          // Fetch workspaces
+          await _workspaceProvider.fetchWorkspaces(authProvider.accessToken!);
         }
       }
     });

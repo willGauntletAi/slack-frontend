@@ -87,36 +87,39 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
+  bool _hasAttemptedConnection = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final authProvider = context.watch<AuthProvider>();
     final wsProvider = context.read<WebSocketProvider>();
 
-    // Connect to WebSocket when authenticated
-    if (authProvider.isAuthenticated && authProvider.accessToken != null) {
+    // Only attempt to connect once when authenticated
+    if (!_hasAttemptedConnection &&
+        authProvider.isAuthenticated &&
+        authProvider.accessToken != null) {
+      _hasAttemptedConnection = true;
       wsProvider.connect(authProvider.accessToken!);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        if (authProvider.isLoading) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
-          );
-        }
+    final authProvider = context.watch<AuthProvider>();
 
-        if (authProvider.isAuthenticated) {
-          return const HomePage();
-        }
+    if (authProvider.isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
 
-        return const LoginPage();
-      },
-    );
+    if (authProvider.isAuthenticated) {
+      return const HomePage();
+    }
+
+    return const LoginPage();
   }
 }

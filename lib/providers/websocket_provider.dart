@@ -1,20 +1,29 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../services/websocket_service.dart';
 
 class WebSocketProvider with ChangeNotifier {
   final WebSocketService _webSocketService = WebSocketService();
+  StreamSubscription<Map<String, dynamic>>? _messageSubscription;
   bool get isConnected => _webSocketService.isConnected;
 
   WebSocketProvider() {
-    _webSocketService.messageStream.listen(_handleWebSocketMessage);
+    debugPrint('🔌 WebSocketProvider: Initializing');
+    _setupMessageListener();
+  }
+
+  void _setupMessageListener() {
+    _messageSubscription?.cancel();
+    _messageSubscription =
+        _webSocketService.messageStream.listen(_handleWebSocketMessage);
   }
 
   void _handleWebSocketMessage(Map<String, dynamic> data) {
     if (data['type'] == null) {
-      debugPrint('WebSocket message received without type: $data');
+      debugPrint('🔌 WebSocketProvider: Message received without type: $data');
       return;
     }
-    debugPrint('WebSocket message received: $data');
+    debugPrint('🔌 WebSocketProvider: Message received: ${data['type']}');
 
     // Only handle connection state changes here
     switch (data['type']) {
@@ -29,6 +38,7 @@ class WebSocketProvider with ChangeNotifier {
       _webSocketService.messageStream;
 
   Future<void> connect(String token) async {
+    debugPrint('🔌 WebSocketProvider: Connect requested');
     await _webSocketService.connect(token);
   }
 
@@ -38,7 +48,8 @@ class WebSocketProvider with ChangeNotifier {
 
   @override
   void dispose() {
-    _webSocketService.dispose();
+    debugPrint('🔌 WebSocketProvider: Disposing');
+    _messageSubscription?.cancel();
     super.dispose();
   }
 }
