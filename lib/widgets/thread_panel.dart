@@ -2,22 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/message_provider.dart';
-import '../providers/dm_provider.dart';
 import 'chat_message.dart';
 
 class ThreadPanel extends StatefulWidget {
   final Message? parentMessage;
-  final DirectMessage? dmParentMessage;
   final bool isDM;
   final VoidCallback onClose;
 
   const ThreadPanel({
     super.key,
     this.parentMessage,
-    this.dmParentMessage,
     this.isDM = false,
     required this.onClose,
-  }) : assert(parentMessage != null || dmParentMessage != null);
+  });
 
   @override
   State<ThreadPanel> createState() => _ThreadPanelState();
@@ -42,11 +39,8 @@ class _ThreadPanelState extends State<ThreadPanel> {
     _messageController.clear();
 
     final authProvider = context.read<AuthProvider>();
-    final parentId =
-        widget.isDM ? widget.dmParentMessage!.id : widget.parentMessage!.id;
-    final channelId = widget.isDM
-        ? widget.dmParentMessage!.channelId
-        : widget.parentMessage!.channelId;
+    final parentId = widget.parentMessage!.id;
+    final channelId = widget.parentMessage!.channelId;
 
     if (authProvider.accessToken == null) {
       if (mounted) {
@@ -61,38 +55,20 @@ class _ThreadPanelState extends State<ThreadPanel> {
       return;
     }
 
-    if (widget.isDM) {
-      final message = await context.read<DMProvider>().sendMessage(
-            authProvider.accessToken!,
-            channelId,
-            text,
-            parentId: parentId,
-          );
-
-      if (message == null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to send message'),
-            backgroundColor: Colors.red,
-          ),
+    final message = await context.read<MessageProvider>().sendMessage(
+          authProvider.accessToken!,
+          channelId,
+          text,
+          parentId: parentId,
         );
-      }
-    } else {
-      final message = await context.read<MessageProvider>().sendMessage(
-            authProvider.accessToken!,
-            channelId,
-            text,
-            parentId: parentId,
-          );
 
-      if (message == null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to send message'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    if (message == null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to send message'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
 
     _isSubmittingMessage = false;
@@ -101,25 +77,11 @@ class _ThreadPanelState extends State<ThreadPanel> {
   @override
   Widget build(BuildContext context) {
     final currentUser = context.watch<AuthProvider>().currentUser;
-    final threadMessages = widget.isDM
-        ? context
-            .watch<DMProvider>()
-            .messages
-            .where((m) => m.parentId == widget.dmParentMessage!.id)
-            .map((m) => Message(
-                id: m.id,
-                content: m.content,
-                createdAt: m.createdAt,
-                updatedAt: m.updatedAt,
-                userId: m.userId,
-                username: m.username,
-                channelId: m.channelId))
-            .toList()
-        : context
-            .watch<MessageProvider>()
-            .messages
-            .where((m) => m.parentId == widget.parentMessage!.id)
-            .toList();
+    final threadMessages = context
+        .watch<MessageProvider>()
+        .messages
+        .where((m) => m.parentId == widget.parentMessage!.id)
+        .toList();
 
     return Container(
       width: 400,
@@ -160,22 +122,13 @@ class _ThreadPanelState extends State<ThreadPanel> {
             ),
           ),
           // Original message
-          if (widget.parentMessage != null)
-            ChatMessage(
-              text: widget.parentMessage!.content,
-              isMe: widget.parentMessage!.userId == currentUser?.id,
-              username: widget.parentMessage!.username,
-              timestamp: widget.parentMessage!.createdAt,
-              repliable: false,
-            )
-          else if (widget.dmParentMessage != null)
-            ChatMessage(
-              text: widget.dmParentMessage!.content,
-              isMe: widget.dmParentMessage!.userId == currentUser?.id,
-              username: widget.dmParentMessage!.username,
-              timestamp: widget.dmParentMessage!.createdAt,
-              repliable: false,
-            ),
+          ChatMessage(
+            text: widget.parentMessage!.content,
+            isMe: widget.parentMessage!.userId == currentUser?.id,
+            username: widget.parentMessage!.username,
+            timestamp: widget.parentMessage!.createdAt,
+            repliable: false,
+          ),
           const Divider(),
           // Thread messages
           Expanded(

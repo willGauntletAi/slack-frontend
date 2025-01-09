@@ -6,12 +6,10 @@ import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/message_provider.dart';
 import '../providers/websocket_provider.dart';
-import '../providers/dm_provider.dart';
 import '../widgets/workspace_list.dart';
 import '../widgets/channel_list.dart';
 import '../widgets/chat_area.dart';
 import '../widgets/dm_list.dart';
-import '../widgets/dm_chat_area.dart';
 import '../widgets/create_dm_dialog.dart';
 
 class HomePage extends StatefulWidget {
@@ -70,14 +68,6 @@ class _HomePageState extends State<HomePage> {
                 authProvider.accessToken!,
                 workspace.id,
               );
-
-          // Fetch DM channels for the workspace
-          if (mounted) {
-            await context.read<DMProvider>().fetchDMChannels(
-                  authProvider.accessToken!,
-                  workspace.id,
-                );
-          }
         } catch (e) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -91,7 +81,6 @@ class _HomePageState extends State<HomePage> {
       } else {
         context.read<ChannelProvider>().clearChannels();
         context.read<MessageProvider>().clearAllChannels();
-        context.read<DMProvider>().clearChannels();
       }
     };
     _workspaceProvider.addListener(_workspaceListener!);
@@ -405,7 +394,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
-    final selectedDMChannel = context.watch<DMProvider>().selectedChannel;
 
     return Scaffold(
       body: Row(
@@ -478,11 +466,9 @@ class _HomePageState extends State<HomePage> {
           Expanded(
             child: selectedChannel != null
                 ? const ChatArea()
-                : selectedDMChannel != null
-                    ? const DMChatArea()
-                    : const Center(
-                        child: Text('Select a channel or conversation'),
-                      ),
+                : const Center(
+                    child: Text('Select a channel or conversation'),
+                  ),
           ),
         ],
       ),

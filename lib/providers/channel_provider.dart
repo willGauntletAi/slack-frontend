@@ -5,17 +5,18 @@ import '../config/api_config.dart';
 
 class Channel {
   final String id;
-  final String name;
+  final String? name;
   final bool isPrivate;
   final DateTime createdAt;
   final DateTime updatedAt;
-
+  final List<String> usernames;
   Channel({
     required this.id,
-    required this.name,
+    this.name,
     required this.isPrivate,
     required this.createdAt,
     required this.updatedAt,
+    required this.usernames,
   });
 
   factory Channel.fromJson(Map<String, dynamic> json) {
@@ -25,6 +26,9 @@ class Channel {
       isPrivate: json['is_private'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
+      usernames: (json['usernames'] as List<dynamic>)
+          .map((e) => e.toString())
+          .toList(),
     );
   }
 }
@@ -87,8 +91,8 @@ class ChannelProvider extends ChangeNotifier {
   }
 
   Future<Channel?> createChannel(
-      String accessToken, String workspaceId, String name,
-      {bool isPrivate = false}) async {
+      String accessToken, String workspaceId, String? name,
+      {List<String> userIds = const [], bool isPrivate = false}) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/channel/workspace/$workspaceId'),
@@ -99,10 +103,12 @@ class ChannelProvider extends ChangeNotifier {
         body: json.encode({
           'name': name,
           'is_private': isPrivate,
+          'member_ids': userIds,
         }),
       );
 
       if (response.statusCode == 201) {
+        debugPrint('Response body: ${response.body}');
         final data = json.decode(response.body);
         final newChannel = Channel.fromJson(data);
 
@@ -111,11 +117,13 @@ class ChannelProvider extends ChangeNotifier {
 
         return newChannel;
       } else {
+        debugPrint('Response body: ${response.body}');
         final error = json.decode(response.body);
         _error = error['error'] ?? 'Failed to create channel';
         return null;
       }
     } catch (e) {
+      debugPrint('Error creating channel: $e');
       _error = 'Network error occurred';
       return null;
     }

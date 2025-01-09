@@ -80,31 +80,6 @@
                   "typeName": "ZodObject",
                   "openapi": {
                     "metadata": {
-                      "description": "New direct message event"
-                    }
-                  }
-                },
-                "~standard": {
-                  "version": 1,
-                  "vendor": "zod"
-                },
-                "_cached": null
-              },
-              {
-                "_def": {
-                  "unknownKeys": "strip",
-                  "catchall": {
-                    "_def": {
-                      "typeName": "ZodNever"
-                    },
-                    "~standard": {
-                      "version": 1,
-                      "vendor": "zod"
-                    }
-                  },
-                  "typeName": "ZodObject",
-                  "openapi": {
-                    "metadata": {
                       "description": "Connection successful event"
                     }
                   }

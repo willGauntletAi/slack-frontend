@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:slack_frontend/providers/channel_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
-import '../providers/dm_provider.dart';
 import '../providers/workspace_users_provider.dart';
 
 class CreateDMDialog extends StatefulWidget {
@@ -194,24 +193,25 @@ class _CreateDMDialogState extends State<CreateDMDialog> {
                       final authProvider = context.read<AuthProvider>();
                       if (authProvider.accessToken == null) return;
 
-                      final dmProvider = context.read<DMProvider>();
+                      final channelProvider = context.read<ChannelProvider>();
                       final workspaceProvider =
                           context.read<WorkspaceProvider>();
                       if (workspaceProvider.selectedWorkspace == null) return;
 
                       final userIds = selected.map((u) => u.id).toList();
 
-                      final channel = await dmProvider.createDMChannel(
+                      final channel = await channelProvider.createChannel(
                         authProvider.accessToken!,
                         workspaceProvider.selectedWorkspace!.id,
-                        userIds,
+                        null,
+                        userIds: userIds,
                       );
 
                       if (context.mounted) {
                         Navigator.pop(context);
                         if (channel != null) {
                           context.read<ChannelProvider>().selectChannel(null);
-                          dmProvider.selectChannel(channel);
+                          channelProvider.selectChannel(channel);
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(

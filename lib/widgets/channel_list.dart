@@ -50,7 +50,12 @@ class ChannelList extends StatelessWidget {
                 return Center(child: Text(channelProvider.error!));
               }
 
-              if (channelProvider.channels.isEmpty) {
+              // Filter for regular channels (channels with non-null names)
+              final regularChannels = channelProvider.channels
+                  .where((channel) => channel.name != null)
+                  .toList();
+
+              if (regularChannels.isEmpty) {
                 return const Center(
                   child: Text('No channels yet'),
                 );
@@ -58,9 +63,9 @@ class ChannelList extends StatelessWidget {
 
               return ListView.builder(
                 padding: EdgeInsets.zero,
-                itemCount: channelProvider.channels.length,
+                itemCount: regularChannels.length,
                 itemBuilder: (context, index) {
-                  final channel = channelProvider.channels[index];
+                  final channel = regularChannels[index];
                   final isSelected =
                       channel.id == channelProvider.selectedChannel?.id;
 
@@ -70,7 +75,7 @@ class ChannelList extends StatelessWidget {
                       color: isSelected ? Colors.blue : null,
                     ),
                     title: Text(
-                      channel.name,
+                      channel.name!,
                       style: TextStyle(
                         color: isSelected ? Colors.blue : null,
                         fontWeight: isSelected ? FontWeight.bold : null,

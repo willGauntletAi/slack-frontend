@@ -9,7 +9,6 @@ import 'providers/user_provider.dart';
 import 'providers/message_provider.dart';
 import 'providers/websocket_provider.dart';
 import 'providers/typing_indicator_provider.dart';
-import 'providers/dm_provider.dart';
 import 'providers/workspace_users_provider.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
@@ -49,12 +48,6 @@ void main() async {
         ChangeNotifierProvider(
           create: (context) => MessageProvider(
             context.read<ChannelProvider>(),
-            context.read<AuthProvider>(),
-            context.read<WebSocketProvider>(),
-          ),
-        ),
-        ChangeNotifierProvider(
-          create: (context) => DMProvider(
             context.read<AuthProvider>(),
             context.read<WebSocketProvider>(),
           ),

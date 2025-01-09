@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:slack_frontend/providers/channel_provider.dart';
 import '../providers/auth_provider.dart';
-import '../providers/dm_provider.dart';
 
 class DMList extends StatelessWidget {
   final void Function() onCreateDmChannel;
@@ -10,10 +9,14 @@ class DMList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dmProvider = context.watch<DMProvider>();
+    final channelProvider = context.watch<ChannelProvider>();
     final authProvider = context.watch<AuthProvider>();
     final currentUser = authProvider.currentUser;
-    final channelProvider = context.read<ChannelProvider>();
+
+    // Filter for DM channels (channels with null name)
+    final dmChannels = channelProvider.channels
+        .where((channel) => channel.name == null)
+        .toList();
 
     return ListView(
       padding: EdgeInsets.zero,
@@ -23,7 +26,7 @@ class DMList extends StatelessWidget {
           title: const Text('New DM'),
           onTap: onCreateDmChannel,
         ),
-        if (dmProvider.channels.isEmpty)
+        if (dmChannels.isEmpty)
           const ListTile(
             dense: true,
             title: Text(
@@ -36,28 +39,25 @@ class DMList extends StatelessWidget {
             ),
           )
         else
-          ...dmProvider.channels.map((channel) {
-            // Get the other user's ID (not the current user)
-            final usernames = channel.usernames.where(
-              (id) => id != currentUser?.id,
+          ...dmChannels.map((channel) {
+            // Get the other usernames (not the current user)
+            final otherUsernames = channel.usernames.where(
+              (username) => username != currentUser?.username,
             );
 
-            final isSelected = dmProvider.selectedChannel?.id == channel.id;
-            debugPrint('selectedChannel is ${dmProvider.selectedChannel?.id}');
+            final isSelected =
+                channelProvider.selectedChannel?.id == channel.id;
             return ListTile(
-                selected: isSelected,
-                leading: const Icon(Icons.person_outline),
-                title: Text(
-                  usernames.join(', '),
-                  style: TextStyle(
-                    fontWeight:
-                        isSelected ? FontWeight.bold : FontWeight.normal,
-                  ),
+              selected: isSelected,
+              leading: const Icon(Icons.person_outline),
+              title: Text(
+                otherUsernames.join(', '),
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
-                onTap: () => {
-                      dmProvider.selectChannel(channel),
-                      channelProvider.selectChannel(null),
-                    });
+              ),
+              onTap: () => channelProvider.selectChannel(channel),
+            );
           }),
       ],
     );
