@@ -83,7 +83,10 @@ class ChannelList extends StatelessWidget {
                       ),
                     ),
                     selected: isSelected,
-                    onTap: () => channelProvider.selectChannel(channel),
+                    onTap: () => channelProvider.selectChannel(
+                      channel,
+                      messageId: channel.lastReadMessage,
+                    ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [

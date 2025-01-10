@@ -4,6 +4,7 @@ import 'dart:async';
 import '../providers/search_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
+import '../providers/channel_provider.dart';
 
 class SearchArea extends StatefulWidget {
   final VoidCallback onClose;
@@ -189,6 +190,21 @@ class _SearchAreaState extends State<SearchArea> {
                           color: Colors.grey,
                         ),
                       ),
+                      onTap: () {
+                        // Find the channel from the channelProvider
+                        final channelProvider = context.read<ChannelProvider>();
+                        final channel = channelProvider.channels.firstWhere(
+                          (c) => c.id == result.channelId,
+                          orElse: () => channelProvider.selectedChannel!,
+                        );
+
+                        // Select the channel with the message ID
+                        channelProvider.selectChannel(channel,
+                            messageId: result.id);
+
+                        // Close the search area
+                        widget.onClose();
+                      },
                     ),
                   );
                 },

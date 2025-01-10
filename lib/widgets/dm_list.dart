@@ -76,7 +76,10 @@ class DMList extends StatelessWidget {
                       ),
                     )
                   : null,
-              onTap: () => channelProvider.selectChannel(channel),
+              onTap: () => channelProvider.selectChannel(
+                channel,
+                messageId: channel.lastReadMessage,
+              ),
             );
           }),
       ],

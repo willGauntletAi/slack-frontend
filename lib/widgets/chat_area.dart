@@ -118,35 +118,33 @@ class _ChatAreaState extends State<ChatArea> {
     }
   }
 
-  void _scrollToLastRead() {
+  void _scrollToMessage() {
     final channel = _channelProvider.selectedChannel;
+    final selectedMessageId = _channelProvider.selectedMessageId;
     final topLevelMessages =
         _messageProvider.messages.where((m) => m.parentId == null).toList();
 
     _lastScrolledChannelId = channel?.id;
-    // Only scroll if we haven't scrolled for this channel yet
+    // Only scroll if we haven't scrolled for this channel yet and there's a selected message
     if (channel == null ||
+        selectedMessageId == null ||
         topLevelMessages.length < 15 ||
         _lastScrolledChannelId == channel.id) {
       return;
     }
 
-    if (channel.lastReadMessage == null) {
-      // Scroll to top if no last read message
-      _itemScrollController.jumpTo(index: topLevelMessages.length - 1);
-      return;
-    }
-
-    // Find the index of the last read message
-    final lastRead = _messageProvider.messages.firstWhere(
-        (m) => m.id == channel.lastReadMessage,
+    // Find the index of the selected message
+    final selectedMessage = _messageProvider.messages.firstWhere(
+        (m) => m.id == selectedMessageId,
         orElse: () => topLevelMessages.first);
-    if (lastRead.parentId != null && _itemScrollController.isAttached) {
+
+    if (selectedMessage.parentId != null && _itemScrollController.isAttached) {
       final index =
-          topLevelMessages.indexWhere((m) => m.id == lastRead.parentId);
+          topLevelMessages.indexWhere((m) => m.id == selectedMessage.parentId);
       _itemScrollController.jumpTo(index: index);
     } else if (_itemScrollController.isAttached) {
-      final index = topLevelMessages.indexWhere((m) => m.id == lastRead.id);
+      final index =
+          topLevelMessages.indexWhere((m) => m.id == selectedMessage.id);
       _itemScrollController.jumpTo(index: index);
     }
   }
@@ -396,9 +394,9 @@ class _ChatAreaState extends State<ChatArea> {
 
     final topLevelMessages = messages.where((m) => m.parentId == null).toList();
 
-    // Try to scroll to last read message whenever messages or channel changes
+    // Try to scroll to selected message or last read message whenever messages or channel changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scrollToLastRead();
+      _scrollToMessage();
     });
 
     return Row(
