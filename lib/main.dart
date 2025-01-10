@@ -29,10 +29,12 @@ void main() async {
           create: (_) => WorkspaceProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => ChannelProvider(),
+          create: (_) => WebSocketProvider(),
         ),
         ChangeNotifierProvider(
-          create: (_) => WebSocketProvider(),
+          create: (context) => ChannelProvider(
+            context.read<WebSocketProvider>(),
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => WorkspaceUsersProvider(),

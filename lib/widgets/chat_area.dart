@@ -72,9 +72,6 @@ class _ChatAreaState extends State<ChatArea> {
       _markNewestVisibleMessageAsRead(positions, topLevelMessages);
     });
 
-    debugPrint('lastIndex: $lastIndex');
-    debugPrint(
-        'lastIndex: topLevelMessages.length: ${topLevelMessages.length}');
     if (channel != null &&
         authProvider.accessToken != null &&
         !_messageProvider.isLoading &&
@@ -97,14 +94,12 @@ class _ChatAreaState extends State<ChatArea> {
     }
 
     // Find the newest visible message (lowest index since list is reversed)
-    debugPrint('positionsLength: ${positions.length}');
     final lowestVisibleIndex = positions
         .where((pos) => pos.itemLeadingEdge < 1.0 && pos.itemTrailingEdge > 0.0)
         .map((pos) => pos.index)
         .reduce(
           (min, index) => index < min ? index : min,
         );
-    debugPrint('lowestVisibleIndex: $lowestVisibleIndex');
     final newestVisibleMessage = topLevelMessages[lowestVisibleIndex];
     if (int.parse(newestVisibleMessage.id) >
         int.parse(channel.lastReadMessage ?? '0')) {

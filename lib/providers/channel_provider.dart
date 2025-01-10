@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import '../config/api_config.dart';
+import 'websocket_provider.dart';
 
 class Channel {
   final String id;
@@ -31,11 +33,30 @@ class Channel {
       isPrivate: json['is_private'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
-      usernames: (json['usernames'] as List<dynamic>)
-          .map((e) => e.toString())
-          .toList(),
+      usernames: (json['usernames'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          (json['members'] as List<dynamic>?)
+              ?.map((e) => (e as Map<String, dynamic>)['username'] as String)
+              .toList() ??
+          [],
       unreadCount: json['unread_count'] ?? 0,
       lastReadMessage: json['last_read_message'],
+    );
+  }
+
+  factory Channel.fromWebSocket(Map<String, dynamic> json) {
+    return Channel(
+      id: json['id'],
+      name: json['name'],
+      isPrivate: json['is_private'],
+      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: DateTime.parse(json['updated_at']),
+      usernames: (json['members'] as List<dynamic>)
+          .map((e) => (e as Map<String, dynamic>)['username'] as String)
+          .toList(),
+      unreadCount: 0, // New channels from websocket start with 0 unread
+      lastReadMessage: null,
     );
   }
 }
@@ -46,6 +67,37 @@ class ChannelProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
   String? _operationError;
+  final WebSocketProvider _wsProvider;
+  StreamSubscription? _wsSubscription;
+
+  ChannelProvider(this._wsProvider) {
+    _setupWebSocketListener();
+  }
+
+  void _setupWebSocketListener() {
+    _wsSubscription = _wsProvider.messageStream.listen((data) {
+      if (data['type'] == 'channel_join') {
+        try {
+          final channelData = data['channel'] as Map<String, dynamic>;
+          final newChannel = Channel.fromWebSocket(channelData);
+
+          // Check if channel already exists
+          final existingIndex =
+              _channels.indexWhere((c) => c.id == newChannel.id);
+          if (existingIndex != -1) {
+            // Update existing channel
+            _channels[existingIndex] = newChannel;
+          } else {
+            // Add new channel to the beginning of the list
+            _channels.insert(0, newChannel);
+          }
+          notifyListeners();
+        } catch (e) {
+          debugPrint('Error processing channel join: $e');
+        }
+      }
+    });
+  }
 
   List<Channel> get channels => _channels;
   Channel? get selectedChannel => _selectedChannel;
@@ -140,7 +192,8 @@ class ChannelProvider extends ChangeNotifier {
         final data = json.decode(response.body);
         final newChannel = Channel.fromJson(data);
 
-        _channels.add(newChannel);
+        // Add new channel to the beginning of the list
+        _channels.insert(0, newChannel);
         notifyListeners();
 
         return newChannel;
@@ -307,5 +360,11 @@ class ChannelProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  @override
+  void dispose() {
+    _wsSubscription?.cancel();
+    super.dispose();
   }
 }
