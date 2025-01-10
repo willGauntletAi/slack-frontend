@@ -77,8 +77,11 @@ class _ChatAreaState extends State<ChatArea> {
     super.dispose();
   }
 
-  Future<void> _handleSubmitted(String text) async {
-    if (text.trim().isEmpty) return;
+  Future<bool> _handleSubmitted(
+    String text,
+    List<MessageAttachment> attachments,
+  ) async {
+    if (text.trim().isEmpty && attachments.isEmpty) return false;
 
     _isSubmittingMessage = true;
     _messageController.clear();
@@ -94,7 +97,7 @@ class _ChatAreaState extends State<ChatArea> {
         ),
       );
       _isSubmittingMessage = false;
-      return;
+      return false;
     }
 
     if (channel == null) {
@@ -105,13 +108,14 @@ class _ChatAreaState extends State<ChatArea> {
         ),
       );
       _isSubmittingMessage = false;
-      return;
+      return false;
     }
 
     final message = await _messageProvider.sendMessage(
       authProvider.accessToken!,
       channel.id,
       text,
+      attachments: attachments,
     );
 
     _isSubmittingMessage = false;
@@ -123,7 +127,10 @@ class _ChatAreaState extends State<ChatArea> {
           backgroundColor: Colors.red,
         ),
       );
+      return false;
     }
+
+    return true;
   }
 
   Map<String, int> _buildReactionsMap(List<MessageReaction> reactions) {
@@ -373,6 +380,7 @@ class _ChatAreaState extends State<ChatArea> {
                           reactions: _buildReactionsMap(message.reactions),
                           myReactions: _buildMyReactionsSet(
                               message.reactions, currentUser?.id),
+                          attachments: message.attachments,
                         );
                       },
                     );

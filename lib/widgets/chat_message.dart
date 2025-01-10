@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import '../providers/message_provider.dart';
+import 'dart:convert';
+import 'package:universal_html/html.dart' as html;
+import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../config/api_config.dart';
 
 class ChatMessage extends StatefulWidget {
   final String text;
@@ -12,6 +19,7 @@ class ChatMessage extends StatefulWidget {
   final bool repliable;
   final Map<String, int>? reactions;
   final Set<String>? myReactions;
+  final List<MessageAttachment>? attachments;
 
   const ChatMessage({
     super.key,
@@ -24,6 +32,7 @@ class ChatMessage extends StatefulWidget {
     this.repliable = true,
     this.reactions,
     this.myReactions,
+    this.attachments,
   });
 
   @override
@@ -188,7 +197,7 @@ class _ChatMessageState extends State<ChatMessage> {
                     verticalSpacing: 0,
                     horizontalSpacing: 0,
                     initCategory: Category.SMILEYS,
-                    bgColor: Theme.of(context).colorScheme.background,
+                    bgColor: Theme.of(context).colorScheme.surface,
                     indicatorColor: Theme.of(context).colorScheme.primary,
                     iconColor: Colors.grey,
                     iconColorSelected: Theme.of(context).colorScheme.primary,
@@ -255,6 +264,79 @@ class _ChatMessageState extends State<ChatMessage> {
     );
   }
 
+  Future<String?> _getDownloadUrl(String fileKey) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    if (authProvider.accessToken == null) return null;
+
+    try {
+      final encodedKey = Uri.encodeComponent(fileKey);
+      final response = await http.get(
+        Uri.parse('${ApiConfig.baseUrl}/file/$encodedKey/download-url'),
+        headers: {
+          'Authorization': 'Bearer ${authProvider.accessToken}',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['url'] as String;
+      }
+    } catch (e) {
+      debugPrint('Error getting download URL: $e');
+    }
+    return null;
+  }
+
+  Widget _buildAttachments() {
+    if (widget.attachments == null || widget.attachments!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: widget.attachments!.map((attachment) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: InkWell(
+            onTap: () async {
+              final downloadUrl = await _getDownloadUrl(attachment.fileKey);
+              if (downloadUrl != null && kIsWeb) {
+                // For web, open in a new tab
+                html.window.open(downloadUrl, '_blank');
+              } else if (downloadUrl != null) {
+                // For mobile, launch URL (you'd need url_launcher package)
+                debugPrint('Download URL: $downloadUrl');
+              } else if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Failed to get download URL'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: Text(
+              '📎 ${attachment.filename} (${_formatFileSize(attachment.size)})',
+              style: const TextStyle(
+                color: Colors.blue,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) {
+      return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    }
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget messageContent = Padding(
@@ -305,6 +387,9 @@ class _ChatMessageState extends State<ChatMessage> {
                           color: Colors.black,
                         ),
                       ),
+                      if (widget.attachments != null &&
+                          widget.attachments!.isNotEmpty)
+                        _buildAttachments(),
                       _buildReactions(),
                     ],
                   ),

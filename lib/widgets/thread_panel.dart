@@ -24,7 +24,6 @@ class ThreadPanel extends StatefulWidget {
 class _ThreadPanelState extends State<ThreadPanel> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  bool _isSubmittingMessage = false;
 
   @override
   void dispose() {
@@ -33,10 +32,12 @@ class _ThreadPanelState extends State<ThreadPanel> {
     super.dispose();
   }
 
-  Future<void> _handleSubmitted(String text) async {
-    if (text.trim().isEmpty) return;
+  Future<bool> _handleSubmitted(
+    String text,
+    List<MessageAttachment> attachments,
+  ) async {
+    if (text.trim().isEmpty && attachments.isEmpty) return false;
 
-    _isSubmittingMessage = true;
     _messageController.clear();
 
     final authProvider = context.read<AuthProvider>();
@@ -52,8 +53,7 @@ class _ThreadPanelState extends State<ThreadPanel> {
           ),
         );
       }
-      _isSubmittingMessage = false;
-      return;
+      return false;
     }
 
     final message = await context.read<MessageProvider>().sendMessage(
@@ -61,6 +61,7 @@ class _ThreadPanelState extends State<ThreadPanel> {
           channelId,
           text,
           parentId: parentId,
+          attachments: attachments,
         );
 
     if (message == null && mounted) {
@@ -70,9 +71,10 @@ class _ThreadPanelState extends State<ThreadPanel> {
           backgroundColor: Colors.red,
         ),
       );
+      return false;
     }
 
-    _isSubmittingMessage = false;
+    return true;
   }
 
   @override
@@ -129,6 +131,7 @@ class _ThreadPanelState extends State<ThreadPanel> {
             username: widget.parentMessage!.username,
             timestamp: widget.parentMessage!.createdAt,
             repliable: false,
+            attachments: widget.parentMessage!.attachments,
           ),
           const Divider(),
           // Thread messages
@@ -148,6 +151,7 @@ class _ThreadPanelState extends State<ThreadPanel> {
                   username: message.username,
                   timestamp: message.createdAt,
                   repliable: false,
+                  attachments: message.attachments,
                 );
               },
             ),

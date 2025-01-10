@@ -17,6 +17,7 @@ class Message {
   final String username;
   final String channelId;
   final List<MessageReaction> reactions;
+  final List<MessageAttachment> attachments;
 
   Message({
     required this.id,
@@ -28,12 +29,18 @@ class Message {
     required this.username,
     required this.channelId,
     required this.reactions,
+    required this.attachments,
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
     final List<MessageReaction> reactions =
         (json['reactions'] as List<dynamic>? ?? [])
             .map((reactionJson) => MessageReaction.fromJson(reactionJson))
+            .toList();
+
+    final List<MessageAttachment> attachments =
+        (json['attachments'] as List<dynamic>? ?? [])
+            .map((attachmentJson) => MessageAttachment.fromJson(attachmentJson))
             .toList();
 
     return Message(
@@ -46,6 +53,7 @@ class Message {
       username: json['username'],
       channelId: json['channel_id'],
       reactions: reactions,
+      attachments: attachments,
     );
   }
 }
@@ -86,6 +94,38 @@ class MessageReaction {
       username: json['username'],
       messageId: messageId,
     );
+  }
+}
+
+class MessageAttachment {
+  final String fileKey;
+  final String filename;
+  final String mimeType;
+  final int size;
+
+  MessageAttachment({
+    required this.fileKey,
+    required this.filename,
+    required this.mimeType,
+    required this.size,
+  });
+
+  factory MessageAttachment.fromJson(Map<String, dynamic> json) {
+    return MessageAttachment(
+      fileKey: json['file_key'],
+      filename: json['filename'],
+      mimeType: json['mime_type'],
+      size: json['size'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'file_key': fileKey,
+      'filename': filename,
+      'mime_type': mimeType,
+      'size': size,
+    };
   }
 }
 
@@ -333,7 +373,7 @@ class MessageProvider with ChangeNotifier {
 
   Future<Message?> sendMessage(
       String accessToken, String channelId, String content,
-      {String? parentId}) async {
+      {String? parentId, List<MessageAttachment>? attachments}) async {
     try {
       final response = await http.post(
         Uri.parse('${ApiConfig.baseUrl}/message/channel/$channelId'),
@@ -344,6 +384,8 @@ class MessageProvider with ChangeNotifier {
         body: json.encode({
           'content': content,
           if (parentId != null) 'parent_id': parentId,
+          if (attachments != null)
+            'attachments': attachments.map((a) => a.toJson()).toList(),
         }),
       );
 
@@ -505,6 +547,7 @@ class MessageProvider with ChangeNotifier {
           username: message.username,
           channelId: message.channelId,
           reactions: updatedReactions,
+          attachments: message.attachments,
         );
 
         notifyListeners();
@@ -540,6 +583,7 @@ class MessageProvider with ChangeNotifier {
             username: message.username,
             channelId: message.channelId,
             reactions: updatedReactions,
+            attachments: message.attachments,
           );
 
           notifyListeners();

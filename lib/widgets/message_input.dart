@@ -2,16 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/message_provider.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import 'dart:convert';
-import 'dart:typed_data';
-import 'dart:html' as html;
 import 'dart:async';
-import 'package:http_parser/http_parser.dart';
+import 'package:dio/dio.dart';
 
 class MessageInput extends StatefulWidget {
-  final Function(String) onSubmitted;
+  final Future<bool> Function(String, List<MessageAttachment>) onSubmitted;
   final String hintText;
 
   const MessageInput({
@@ -26,13 +25,16 @@ class MessageInput extends StatefulWidget {
 
 class _MessageInputState extends State<MessageInput> {
   final _messageController = TextEditingController();
+  final _dio = Dio();
   bool _isSubmittingMessage = false;
   bool _isUploadingFile = false;
-  List<FileUpload> _uploadedFiles = [];
+  final List<MessageAttachment> _uploadedFiles = [];
+  final Map<String, double> _uploadProgress = {};
 
   @override
   void dispose() {
     _messageController.dispose();
+    _dio.close();
     super.dispose();
   }
 
@@ -43,21 +45,18 @@ class _MessageInputState extends State<MessageInput> {
       _isSubmittingMessage = true;
     });
 
-    String messageText = text;
-    if (_uploadedFiles.isNotEmpty) {
-      // Add file references to the message
-      final fileLinks = await Future.wait(
-          _uploadedFiles.map((file) => _getDownloadUrl(file.key)));
-      final validLinks = fileLinks.where((link) => link != null).cast<String>();
-      if (validLinks.isNotEmpty) {
-        messageText = '$text\n${validLinks.join('\n')}';
-      }
-    }
-
-    _messageController.clear();
+    final attachments = List<MessageAttachment>.from(_uploadedFiles);
     _uploadedFiles.clear();
 
-    await widget.onSubmitted(messageText);
+    final success = await widget.onSubmitted(text, attachments);
+
+    if (!success && mounted) {
+      setState(() {
+        _uploadedFiles.addAll(attachments);
+      });
+    } else {
+      _messageController.clear();
+    }
 
     setState(() {
       _isSubmittingMessage = false;
@@ -95,77 +94,48 @@ class _MessageInputState extends State<MessageInput> {
     return null;
   }
 
-  Future<String?> _getDownloadUrl(String key) async {
-    final authProvider = context.read<AuthProvider>();
-    if (authProvider.accessToken == null) return null;
-
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/file/$key/download-url'),
-        headers: {
-          'Authorization': 'Bearer ${authProvider.accessToken}',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return data['url'];
-      }
-    } catch (e) {
-      debugPrint('Error getting download URL: $e');
-    }
-    return null;
-  }
-
-  Future<void> _uploadFileWithXHR(
+  Future<void> _uploadFile(
     PlatformFile file,
     String uploadUrl,
     String fileKey,
-  ) {
-    final completer = Completer<void>();
-    final xhr = html.HttpRequest();
+  ) async {
+    try {
+      setState(() {
+        _uploadProgress[file.name] = 0;
+      });
 
-    xhr.open('PUT', uploadUrl);
-    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+      await _dio.put(
+        uploadUrl,
+        data: file.bytes,
+        options: Options(
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+        ),
+        onSendProgress: (count, total) {
+          if (mounted) {
+            setState(() {
+              _uploadProgress[file.name] = (count / total) * 100;
+            });
+          }
+        },
+      );
 
-    xhr.upload.onProgress.listen((e) {
-      if (e.lengthComputable) {
-        final total = e.total ?? 0;
-        final loaded = e.loaded ?? 0;
-        if (total > 0) {
-          final percentComplete = (loaded / total) * 100;
-          debugPrint('Upload progress: $percentComplete%');
-        }
+      if (mounted) {
+        setState(() {
+          _uploadedFiles.add(MessageAttachment(
+            fileKey: fileKey,
+            filename: file.name,
+            mimeType: _getContentType(file.extension ?? ''),
+            size: file.size,
+          ));
+          _uploadProgress.remove(file.name);
+        });
       }
-    });
-
-    xhr.onLoad.listen((e) {
-      if (xhr.status == 200) {
-        if (mounted) {
-          setState(() {
-            _uploadedFiles.add(FileUpload(
-              name: file.name,
-              key: fileKey,
-              size: file.bytes!.length,
-            ));
-          });
-        }
-        completer.complete();
-      } else {
-        completer.completeError('Upload failed with status: ${xhr.status}');
-      }
-    });
-
-    xhr.onError.listen((e) {
-      debugPrint('XHR Error: $e');
-      completer.completeError('Upload failed: $e');
-    });
-
-    // Convert Uint8List to Blob and send
-    final blob = html.Blob([file.bytes]);
-    xhr.send(blob);
-
-    return completer.future;
+    } catch (e) {
+      _uploadProgress.remove(file.name);
+      rethrow;
+    }
   }
 
   Future<void> _handleFileUpload() async {
@@ -192,7 +162,7 @@ class _MessageInputState extends State<MessageInput> {
           final uploadUrl = uploadUrlResponse['url'] as String;
           final fileKey = uploadUrlResponse['key'] as String;
 
-          await _uploadFileWithXHR(file, uploadUrl, fileKey);
+          await _uploadFile(file, uploadUrl, fileKey);
         } catch (e) {
           debugPrint('Error uploading file: $e');
           if (mounted) {
@@ -261,21 +231,31 @@ class _MessageInputState extends State<MessageInput> {
       ),
       child: Column(
         children: [
-          if (_uploadedFiles.isNotEmpty)
+          if (_uploadedFiles.isNotEmpty || _uploadProgress.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(8),
               child: Wrap(
                 spacing: 8,
-                children: _uploadedFiles
-                    .map((file) => Chip(
-                          label: Text(file.name),
-                          onDeleted: () {
-                            setState(() {
-                              _uploadedFiles.remove(file);
-                            });
-                          },
-                        ))
-                    .toList(),
+                children: [
+                  ..._uploadedFiles.map((file) => Chip(
+                        label: Text(file.filename),
+                        onDeleted: () {
+                          setState(() {
+                            _uploadedFiles.remove(file);
+                          });
+                        },
+                      )),
+                  ..._uploadProgress.entries.map((entry) => Chip(
+                        label: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(entry.key),
+                            const SizedBox(width: 8),
+                            Text('${entry.value.toStringAsFixed(0)}%'),
+                          ],
+                        ),
+                      )),
+                ],
               ),
             ),
           Padding(
@@ -303,8 +283,16 @@ class _MessageInputState extends State<MessageInput> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () => _handleSubmitted(_messageController.text),
+                  icon: _isSubmittingMessage
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send),
+                  onPressed: _isSubmittingMessage
+                      ? null
+                      : () => _handleSubmitted(_messageController.text),
                 ),
               ],
             ),
@@ -313,16 +301,4 @@ class _MessageInputState extends State<MessageInput> {
       ),
     );
   }
-}
-
-class FileUpload {
-  final String name;
-  final String key;
-  final int size;
-
-  FileUpload({
-    required this.name,
-    required this.key,
-    required this.size,
-  });
 }

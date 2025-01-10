@@ -5,7 +5,6 @@ import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/message_provider.dart';
-import '../providers/websocket_provider.dart';
 import '../widgets/workspace_list.dart';
 import '../widgets/channel_list.dart';
 import '../widgets/chat_area.dart';
