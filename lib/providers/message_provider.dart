@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
@@ -110,18 +111,65 @@ class MessageProvider extends ChangeNotifier {
   bool _hasAfter = true;
   String? _currentChannelId;
   String? _error;
+  StreamSubscription? _wsSubscription;
 
   MessageProvider({
     required AuthProvider authProvider,
     required WebSocketProvider wsProvider,
   })  : _authProvider = authProvider,
-        _wsProvider = wsProvider;
+        _wsProvider = wsProvider {
+    _setupWebSocketListener();
+  }
+
+  void _setupWebSocketListener() {
+    _wsSubscription = _wsProvider.messageStream.listen((data) {
+      if (data['type'] == 'new_message') {
+        final channelId = data['channelId'] as String;
+        final messageData = data['message'] as Map<String, dynamic>;
+
+        // Transform the message data to match our expected format
+        final transformedData = {
+          'id': messageData['id'],
+          'content': messageData['content'],
+          'parent_id': messageData['parent_id'],
+          'created_at': messageData['created_at'],
+          'updated_at': messageData['updated_at'],
+          'user_id': messageData['user_id'],
+          'username': messageData['username'],
+          'channel_id': channelId,
+          'reactions': [], // New messages won't have reactions initially
+          'attachments': (messageData['attachments'] as List<dynamic>?)
+                  ?.map((a) => {
+                        'file_key': a['file_key'],
+                        'filename': a['filename'],
+                        'mime_type': a['mime_type'],
+                        'size': a['size'],
+                      })
+                  .toList() ??
+              [],
+        };
+
+        // Only handle messages for the current channel
+        if (_currentChannelId != null &&
+            channelId.toLowerCase() == _currentChannelId!.toLowerCase()) {
+          final newMessage = Message.fromJson(transformedData);
+
+          // Check for duplicates before adding
+          if (!_messages.any((m) => m.id == newMessage.id)) {
+            _messages.insert(0, newMessage);
+            notifyListeners();
+          }
+        }
+      }
+    });
+  }
 
   List<Message> get messages => _messages;
   bool get isLoading => _isLoading;
   bool get hasBefore => _hasBefore;
   bool get hasAfter => _hasAfter;
   String? get error => _error;
+  String? get currentChannelId => _currentChannelId;
 
   Future<void> loadMessages(
     String channelId, {
@@ -197,11 +245,8 @@ class MessageProvider extends ChangeNotifier {
 
   Future<void> before() async {
     if (!_hasBefore || _messages.isEmpty || _currentChannelId == null) {
-      debugPrint(
-          '📜 Before load skipped - hasBefore: $_hasBefore, messages empty: ${_messages.isEmpty}, channelId: $_currentChannelId');
       return;
     }
-    debugPrint('📜 Loading messages before ${_messages.first.id}');
     await loadMessages(
       _currentChannelId!,
       before: _messages.first.id,
@@ -210,11 +255,8 @@ class MessageProvider extends ChangeNotifier {
 
   Future<void> after() async {
     if (!_hasAfter || _messages.isEmpty || _currentChannelId == null) {
-      debugPrint(
-          '📜 After load skipped - hasAfter: $_hasAfter, messages empty: ${_messages.isEmpty}, channelId: $_currentChannelId');
       return;
     }
-    debugPrint('📜 Loading messages after ${_messages.last.id}');
     await loadMessages(
       _currentChannelId!,
       after: _messages.last.id,
@@ -240,7 +282,6 @@ class MessageProvider extends ChangeNotifier {
 
     try {
       final uri = Uri.parse('${ApiConfig.baseUrl}/message/channel/$channelId');
-      debugPrint('🚀 Sending message to: $uri');
 
       final body = {
         'content': content,
@@ -255,7 +296,6 @@ class MessageProvider extends ChangeNotifier {
                   })
               .toList(),
       };
-      debugPrint('📦 Request body: ${json.encode(body)}');
 
       final response = await http.post(
         uri,
@@ -265,9 +305,6 @@ class MessageProvider extends ChangeNotifier {
         },
         body: json.encode(body),
       );
-
-      debugPrint('📡 Response status: ${response.statusCode}');
-      debugPrint('📡 Response body: ${response.body}');
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -279,8 +316,6 @@ class MessageProvider extends ChangeNotifier {
         return null;
       }
     } catch (e, stackTrace) {
-      debugPrint('❌ Error sending message: $e');
-      debugPrint('Stack trace: $stackTrace');
       _error = 'An error occurred while sending message';
       notifyListeners();
       return null;
@@ -356,5 +391,11 @@ class MessageProvider extends ChangeNotifier {
       notifyListeners();
       return false;
     }
+  }
+
+  @override
+  void dispose() {
+    _wsSubscription?.cancel();
+    super.dispose();
   }
 }
