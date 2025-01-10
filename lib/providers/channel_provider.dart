@@ -96,6 +96,30 @@ class ChannelProvider extends ChangeNotifier {
         } catch (e) {
           debugPrint('Error processing channel join: $e');
         }
+      } else if (data['type'] == 'new_message') {
+        try {
+          final channelId = data['channelId'] as String;
+          final channelIndex = _channels.indexWhere((c) => c.id == channelId);
+
+          // Only increment unread count if the channel exists and is not currently selected
+          if (channelIndex != -1 && _selectedChannel?.id != channelId) {
+            final channel = _channels[channelIndex];
+            final updatedChannel = Channel(
+              id: channel.id,
+              name: channel.name,
+              isPrivate: channel.isPrivate,
+              createdAt: channel.createdAt,
+              updatedAt: channel.updatedAt,
+              usernames: channel.usernames,
+              unreadCount: channel.unreadCount + 1,
+              lastReadMessage: channel.lastReadMessage,
+            );
+            _channels[channelIndex] = updatedChannel;
+            notifyListeners();
+          }
+        } catch (e) {
+          debugPrint('Error processing new message: $e');
+        }
       }
     });
   }
