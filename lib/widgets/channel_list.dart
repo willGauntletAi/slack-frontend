@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
+import 'add_channel_members_dialog.dart';
 
 class ChannelList extends StatelessWidget {
   final void Function() onCreateChannel;
@@ -45,7 +46,8 @@ class ChannelList extends StatelessWidget {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (channelProvider.error != null) {
+              if (channelProvider.error != null &&
+                  channelProvider.channels.isEmpty) {
                 return Center(child: Text(channelProvider.error!));
               }
 
@@ -105,66 +107,77 @@ class ChannelList extends StatelessWidget {
                               ),
                             ),
                           ),
-                        IconButton(
+                        PopupMenuButton<String>(
                           icon: const Icon(Icons.more_vert),
-                          onPressed: () {
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (context) => SafeArea(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ListTile(
-                                      leading: const Icon(Icons.exit_to_app),
-                                      title: const Text('Leave Channel'),
-                                      onTap: () async {
-                                        Navigator.pop(
-                                            context); // Close bottom sheet
-                                        final authProvider =
-                                            context.read<AuthProvider>();
-
-                                        if (authProvider.accessToken != null &&
-                                            authProvider.currentUser?.id !=
-                                                null) {
-                                          final success = await channelProvider
-                                              .leaveChannel(
-                                            authProvider.accessToken!,
-                                            channel.id,
-                                            authProvider.currentUser!.id,
-                                          );
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              SnackBar(
-                                                content: Text(
-                                                  success
-                                                      ? 'Left ${channel.name}'
-                                                      : channelProvider.error ??
-                                                          'Failed to leave channel',
-                                                ),
-                                                backgroundColor:
-                                                    success ? null : Colors.red,
-                                              ),
-                                            );
-                                          }
-                                        } else {
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                    'Unable to leave channel: User ID not found'),
-                                                backgroundColor: Colors.red,
-                                              ),
-                                            );
-                                          }
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ),
+                          itemBuilder: (BuildContext context) => [
+                            PopupMenuItem<String>(
+                              value: 'add_member',
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.person_add),
+                                  SizedBox(width: 8),
+                                  Text('Add Member'),
+                                ],
                               ),
-                            );
+                            ),
+                            const PopupMenuDivider(),
+                            PopupMenuItem<String>(
+                              value: 'leave',
+                              child: Row(
+                                children: const [
+                                  Icon(Icons.exit_to_app),
+                                  SizedBox(width: 8),
+                                  Text('Leave Channel'),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onSelected: (String value) async {
+                            if (value == 'add_member') {
+                              showDialog(
+                                context: context,
+                                builder: (context) => AddChannelMembersDialog(
+                                  channelId: channel.id,
+                                  channelName: channel.name!,
+                                ),
+                              );
+                            } else if (value == 'leave') {
+                              final authProvider = context.read<AuthProvider>();
+
+                              if (authProvider.accessToken != null &&
+                                  authProvider.currentUser?.id != null) {
+                                final success =
+                                    await channelProvider.leaveChannel(
+                                  authProvider.accessToken!,
+                                  channel.id,
+                                  authProvider.currentUser!.id,
+                                );
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        success
+                                            ? 'Left ${channel.name}'
+                                            : channelProvider.error ??
+                                                'Failed to leave channel',
+                                      ),
+                                      backgroundColor:
+                                          success ? null : Colors.red,
+                                    ),
+                                  );
+                                }
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Unable to leave channel: User ID not found'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            }
                           },
                         ),
                       ],

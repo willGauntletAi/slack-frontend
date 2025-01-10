@@ -37,7 +37,8 @@ class WorkspaceUsersProvider with ChangeNotifier {
   String? getError(String workspaceId) => _errors[workspaceId];
 
   Future<List<WorkspaceUser>> fetchWorkspaceUsers(
-      String accessToken, String workspaceId) async {
+      String accessToken, String workspaceId,
+      {String? excludeChannelId}) async {
     if (_isLoading[workspaceId] == true) {
       return _workspaceUsers[workspaceId] ?? [];
     }
@@ -47,8 +48,14 @@ class WorkspaceUsersProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      var uri = Uri.parse('${ApiConfig.baseUrl}/user/workspace/$workspaceId');
+      if (excludeChannelId != null) {
+        uri = uri.replace(
+            queryParameters: {'excludeChannelMembers': excludeChannelId});
+      }
+
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/user/workspace/$workspaceId'),
+        uri,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $accessToken',

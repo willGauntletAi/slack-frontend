@@ -45,11 +45,18 @@ class ChannelProvider extends ChangeNotifier {
   Channel? _selectedChannel;
   bool _isLoading = false;
   String? _error;
+  String? _operationError;
 
   List<Channel> get channels => _channels;
   Channel? get selectedChannel => _selectedChannel;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  String? get operationError => _operationError;
+
+  void _clearOperationError() {
+    _operationError = null;
+    notifyListeners();
+  }
 
   void selectChannel(Channel? channel) {
     if (_selectedChannel?.id != channel?.id) {
@@ -254,6 +261,51 @@ class ChannelProvider extends ChangeNotifier {
         _selectedChannel = updatedChannel;
       }
       notifyListeners();
+    }
+  }
+
+  Future<bool> addChannelMembers(
+    String token,
+    String channelId,
+    List<String> userIds,
+  ) async {
+    _clearOperationError();
+    try {
+      // Add each user to the channel individually
+      for (final userId in userIds) {
+        final response = await http.post(
+          Uri.parse('${ApiConfig.baseUrl}/channel/$channelId/member/$userId'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+
+        if (response.statusCode != 200) {
+          _operationError = 'Failed to add member to channel';
+          notifyListeners();
+          return false;
+        }
+      }
+
+      // Refresh the channels list after adding all members
+      final channel = _channels.firstWhere((c) => c.id == channelId);
+      final selectedChannel = Channel(
+        id: channel.id,
+        name: channel.name,
+        isPrivate: channel.isPrivate,
+        createdAt: channel.createdAt,
+        updatedAt: channel.updatedAt,
+        usernames: [...channel.usernames],
+        unreadCount: channel.unreadCount,
+        lastReadMessage: channel.lastReadMessage,
+      );
+      updateChannel(selectedChannel);
+      return true;
+    } catch (e) {
+      _operationError = 'Failed to add members to channel';
+      notifyListeners();
+      return false;
     }
   }
 }

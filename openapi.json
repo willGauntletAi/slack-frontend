@@ -1501,6 +1501,15 @@
               "type": "string"
             },
             "description": "Search term to filter users by username or email"
+          },
+          {
+            "name": "excludeChannelMembers",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Channel ID to exclude members from"
           }
         ],
         "responses": {
