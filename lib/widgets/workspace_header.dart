@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:slack_frontend/providers/auth_provider.dart';
-import 'package:slack_frontend/providers/channel_provider.dart';
 import 'package:slack_frontend/providers/workspace_provider.dart';
 
 class WorkspaceHeader extends StatelessWidget {

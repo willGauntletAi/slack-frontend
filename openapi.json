@@ -3011,6 +3011,24 @@
               "type": "string"
             },
             "description": "Message ID to fetch messages before"
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Message ID to fetch messages after"
+          },
+          {
+            "name": "around",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Message ID to fetch messages around (before and after)"
           }
         ],
         "responses": {
@@ -3020,6 +3038,24 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ListMessagesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
                 }
               }
             }

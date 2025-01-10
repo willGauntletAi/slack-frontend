@@ -4,7 +4,6 @@ import 'dart:async';
 import '../providers/search_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
-import 'chat_message.dart';
 
 class SearchArea extends StatefulWidget {
   final VoidCallback onClose;

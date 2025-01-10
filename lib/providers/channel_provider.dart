@@ -64,6 +64,7 @@ class Channel {
 class ChannelProvider extends ChangeNotifier {
   List<Channel> _channels = [];
   Channel? _selectedChannel;
+  String? _selectedMessageId;
   bool _isLoading = false;
   String? _error;
   String? _operationError;
@@ -101,6 +102,7 @@ class ChannelProvider extends ChangeNotifier {
 
   List<Channel> get channels => _channels;
   Channel? get selectedChannel => _selectedChannel;
+  String? get selectedMessageId => _selectedMessageId;
   bool get isLoading => _isLoading;
   String? get error => _error;
   String? get operationError => _operationError;
@@ -110,8 +112,9 @@ class ChannelProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void selectChannel(Channel? channel) {
-    if (_selectedChannel?.id != channel?.id) {
+  void selectChannel(Channel? channel, {String? messageId}) {
+    if (_selectedChannel?.id != channel?.id ||
+        _selectedMessageId != messageId) {
       if (channel != null) {
         // Reset unread count when selecting a channel
         final updatedChannel = Channel(
@@ -127,6 +130,7 @@ class ChannelProvider extends ChangeNotifier {
         updateChannel(updatedChannel);
       }
       _selectedChannel = channel;
+      _selectedMessageId = messageId;
       notifyListeners();
     }
   }

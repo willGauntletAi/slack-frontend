@@ -144,6 +144,10 @@ class MessageProvider with ChangeNotifier {
   final Map<String, String?> _channelLastMessageIds = {};
   // Map of channelId to hasMore state
   final Map<String, bool> _channelHasMore = {};
+  // Map of channelId to hasBefore state
+  final Map<String, bool> _channelHasBefore = {};
+  // Map of channelId to hasAfter state
+  final Map<String, bool> _channelHasAfter = {};
   // Set of in-progress requests (channelId + lastMessageId)
   final Set<String> _inProgressRequests = {};
   String? get _currentChannelId => channelProvider.selectedChannel?.id;
@@ -195,6 +199,8 @@ class MessageProvider with ChangeNotifier {
   bool get isLoading => _channelLoading[_currentChannelId] ?? false;
   String? get error => _channelErrors[_currentChannelId];
   bool get hasMore => _channelHasMore[_currentChannelId] ?? true;
+  bool get hasBefore => _channelHasBefore[_currentChannelId] ?? true;
+  bool get hasAfter => _channelHasAfter[_currentChannelId] ?? true;
 
   void handleNewMessage(Map<String, dynamic> messageData) {
     debugPrint('Handling new message event');
@@ -287,22 +293,24 @@ class MessageProvider with ChangeNotifier {
   }
 
   Future<void> loadMessages(String accessToken, String channelId,
-      {int limit = 50}) async {
+      {int limit = 50, String? around}) async {
     debugPrint('Loading messages for channel: $channelId');
 
-    String? lastMessageId;
-    if (_channelMessages[channelId] != null &&
-        _channelMessages[channelId]!.isNotEmpty) {
-      lastMessageId = _channelMessages[channelId]!.last.id;
+    String requestId;
+    if (around != null) {
+      requestId = '${channelId}_around_$around';
+    } else {
+      String? lastMessageId;
+      if (_channelMessages[channelId] != null &&
+          _channelMessages[channelId]!.isNotEmpty) {
+        lastMessageId = _channelMessages[channelId]!.last.id;
+      }
+      requestId = '${channelId}_${lastMessageId ?? "initial"}';
     }
-
-    // Create a unique request identifier
-    final requestId = '${channelId}_${lastMessageId ?? "initial"}';
 
     // Check if this exact request is already in progress
     if (_inProgressRequests.contains(requestId)) {
-      debugPrint(
-          'Request already in progress for channel: $channelId with lastMessageId: $lastMessageId');
+      debugPrint('Request already in progress for channel: $channelId');
       return;
     }
 
@@ -313,12 +321,20 @@ class MessageProvider with ChangeNotifier {
 
     try {
       var url = '${ApiConfig.baseUrl}/message/channel/$channelId?limit=$limit';
-      if (lastMessageId != null) {
-        url += '&before=$lastMessageId';
-        debugPrint(
-            'Fetching messages from: $url with beforeKey: $lastMessageId');
+      if (around != null) {
+        url += '&around=$around';
+        debugPrint('Fetching messages from: $url with around: $around');
       } else {
-        debugPrint('Fetching messages from: $url with no beforeKey');
+        String? lastMessageId;
+        if (_channelMessages[channelId] != null &&
+            _channelMessages[channelId]!.isNotEmpty) {
+          lastMessageId = _channelMessages[channelId]!.last.id;
+          url += '&before=$lastMessageId';
+          debugPrint(
+              'Fetching messages from: $url with beforeKey: $lastMessageId');
+        } else {
+          debugPrint('Fetching messages from: $url with no beforeKey');
+        }
       }
 
       final response = await http.get(
@@ -337,6 +353,8 @@ class MessageProvider with ChangeNotifier {
         if (newMessages.isEmpty) {
           debugPrint('No more messages to load');
           _channelHasMore[channelId] = false;
+          _channelHasBefore[channelId] = false;
+          _channelHasAfter[channelId] = false;
         } else {
           final channelMessages = _channelMessages[channelId] ?? [];
 
@@ -345,17 +363,24 @@ class MessageProvider with ChangeNotifier {
           final uniqueNewMessages =
               newMessages.where((m) => !existingIds.contains(m.id)).toList();
 
-          debugPrint(
-              'Adding ${uniqueNewMessages.length} unique messages to existing ${channelMessages.length} messages');
-          channelMessages.addAll(uniqueNewMessages);
+          if (around != null) {
+            // For around queries, replace all messages
+            _channelMessages[channelId] = uniqueNewMessages;
+            // Set hasBefore/hasAfter based on the number of messages received
+            _channelHasBefore[channelId] = uniqueNewMessages.length >= limit;
+            _channelHasAfter[channelId] = uniqueNewMessages.length >= limit;
+          } else {
+            // For before/after queries, append to existing messages
+            channelMessages.addAll(uniqueNewMessages);
+            _channelMessages[channelId] = channelMessages;
+          }
 
           // Sort messages by ID to ensure correct order
-          channelMessages
+          _channelMessages[channelId]!
               .sort((a, b) => int.parse(b.id).compareTo(int.parse(a.id)));
 
-          _channelMessages[channelId] = channelMessages;
-          _channelLastMessageIds[channelId] = channelMessages.last.id;
-          notifyListeners();
+          _channelLastMessageIds[channelId] =
+              _channelMessages[channelId]!.last.id;
         }
 
         _channelErrors[channelId] = null;
@@ -374,12 +399,100 @@ class MessageProvider with ChangeNotifier {
     }
   }
 
+  Future<void> before(String accessToken, String channelId,
+      {int limit = 50}) async {
+    if (!hasBefore) return;
+
+    if (_channelMessages[channelId] == null ||
+        _channelMessages[channelId]!.isEmpty) {
+      return loadMessages(accessToken, channelId, limit: limit);
+    }
+
+    String lastMessageId = _channelMessages[channelId]!.last.id;
+    var url =
+        '${ApiConfig.baseUrl}/message/channel/$channelId?limit=$limit&before=$lastMessageId';
+    await _loadMoreMessages(
+        accessToken, channelId, url, 'before_$lastMessageId', true);
+  }
+
+  Future<void> after(String accessToken, String channelId,
+      {int limit = 50}) async {
+    if (!hasAfter) return;
+
+    if (_channelMessages[channelId] == null ||
+        _channelMessages[channelId]!.isEmpty) {
+      return loadMessages(accessToken, channelId, limit: limit);
+    }
+
+    String firstMessageId = _channelMessages[channelId]!.first.id;
+    var url =
+        '${ApiConfig.baseUrl}/message/channel/$channelId?limit=$limit&after=$firstMessageId';
+    await _loadMoreMessages(
+        accessToken, channelId, url, 'after_$firstMessageId', false);
+  }
+
+  Future<void> _loadMoreMessages(String accessToken, String channelId,
+      String url, String requestId, bool isBefore) async {
+    if (_inProgressRequests.contains(requestId)) {
+      debugPrint('Request already in progress: $requestId');
+      return;
+    }
+
+    _inProgressRequests.add(requestId);
+    _channelLoading[channelId] = true;
+    notifyListeners();
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final newMessages = data.map((json) => Message.fromJson(json)).toList();
+
+        if (newMessages.isEmpty) {
+          if (isBefore) {
+            _channelHasBefore[channelId] = false;
+          } else {
+            _channelHasAfter[channelId] = false;
+          }
+        } else {
+          final channelMessages = _channelMessages[channelId] ?? [];
+          final existingIds = channelMessages.map((m) => m.id).toSet();
+          final uniqueNewMessages =
+              newMessages.where((m) => !existingIds.contains(m.id)).toList();
+
+          channelMessages.addAll(uniqueNewMessages);
+          channelMessages
+              .sort((a, b) => int.parse(b.id).compareTo(int.parse(a.id)));
+          _channelMessages[channelId] = channelMessages;
+        }
+      } else {
+        final error = json.decode(response.body);
+        _channelErrors[channelId] = error['error'] ?? 'Failed to load messages';
+      }
+    } catch (e) {
+      _channelErrors[channelId] = 'Network error occurred';
+    } finally {
+      _inProgressRequests.remove(requestId);
+      _channelLoading[channelId] = false;
+      notifyListeners();
+    }
+  }
+
   void clearChannel(String channelId) {
     _channelMessages.remove(channelId);
     _channelLoading.remove(channelId);
     _channelErrors.remove(channelId);
     _channelLastMessageIds.remove(channelId);
     _channelHasMore.remove(channelId);
+    _channelHasBefore.remove(channelId);
+    _channelHasAfter.remove(channelId);
     notifyListeners();
   }
 
@@ -389,6 +502,8 @@ class MessageProvider with ChangeNotifier {
     _channelErrors.clear();
     _channelLastMessageIds.clear();
     _channelHasMore.clear();
+    _channelHasBefore.clear();
+    _channelHasAfter.clear();
     notifyListeners();
   }
 

@@ -40,6 +40,23 @@ class _ChatAreaState extends State<ChatArea> {
     _messageProvider = context.read<MessageProvider>();
     _messageController.addListener(_onTextChanged);
     _itemPositionsListener.itemPositions.addListener(_onScroll);
+
+    // Load initial messages whenever channel or selectedMessageId changes
+    _channelProvider.addListener(_handleChannelChange);
+  }
+
+  void _handleChannelChange() {
+    final channel = _channelProvider.selectedChannel;
+    final messageId = _channelProvider.selectedMessageId;
+    final authProvider = context.read<AuthProvider>();
+
+    if (channel != null && authProvider.accessToken != null) {
+      _messageProvider.loadMessages(
+        authProvider.accessToken!,
+        channel.id,
+        around: messageId,
+      );
+    }
   }
 
   void _onTextChanged() {
@@ -60,7 +77,6 @@ class _ChatAreaState extends State<ChatArea> {
     final positions = _itemPositionsListener.itemPositions.value;
     if (positions.isEmpty) return;
 
-    final lastIndex = positions.last.index;
     final channel = _channelProvider.selectedChannel;
     final authProvider = context.read<AuthProvider>();
     final topLevelMessages =
@@ -74,13 +90,25 @@ class _ChatAreaState extends State<ChatArea> {
 
     if (channel != null &&
         authProvider.accessToken != null &&
-        !_messageProvider.isLoading &&
-        _messageProvider.hasMore &&
-        lastIndex >= topLevelMessages.length - 5) {
-      _messageProvider.loadMessages(
-        authProvider.accessToken!,
-        channel.id,
-      );
+        !_messageProvider.isLoading) {
+      // Load older messages when scrolling near bottom
+      final lastIndex = positions.last.index;
+      if (_messageProvider.hasBefore &&
+          lastIndex >= topLevelMessages.length - 5) {
+        _messageProvider.before(
+          authProvider.accessToken!,
+          channel.id,
+        );
+      }
+
+      // Load newer messages when scrolling near top
+      final firstIndex = positions.first.index;
+      if (_messageProvider.hasAfter && firstIndex <= 5) {
+        _messageProvider.after(
+          authProvider.accessToken!,
+          channel.id,
+        );
+      }
     }
   }
 
@@ -145,6 +173,7 @@ class _ChatAreaState extends State<ChatArea> {
     _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _scrollInactivityTimer?.cancel();
+    _channelProvider.removeListener(_handleChannelChange);
     super.dispose();
   }
 
