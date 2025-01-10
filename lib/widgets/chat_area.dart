@@ -117,14 +117,13 @@ class _ChatAreaState extends State<ChatArea> {
     final topLevelMessages =
         _messageProvider.messages.where((m) => m.parentId == null).toList();
 
+    _lastScrolledChannelId = channel?.id;
     // Only scroll if we haven't scrolled for this channel yet
     if (channel == null ||
         topLevelMessages.length < 15 ||
         _lastScrolledChannelId == channel.id) {
       return;
     }
-
-    _lastScrolledChannelId = channel.id;
 
     if (channel.lastReadMessage == null) {
       // Scroll to top if no last read message
