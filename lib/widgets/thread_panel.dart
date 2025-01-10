@@ -132,6 +132,7 @@ class _ThreadPanelState extends State<ThreadPanel> {
             userId: widget.parentMessage!.userId,
             repliable: false,
             attachments: widget.parentMessage!.attachments,
+            isLastRead: false,
           ),
           const Divider(),
           // Thread messages
@@ -153,6 +154,7 @@ class _ThreadPanelState extends State<ThreadPanel> {
                   userId: message.userId,
                   repliable: false,
                   attachments: message.attachments,
+                  isLastRead: false,
                 );
               },
             ),

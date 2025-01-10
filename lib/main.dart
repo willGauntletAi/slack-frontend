@@ -80,7 +80,24 @@ class MainApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
-        '/home': (context) => const HomePage(),
+        '/home': (context) {
+          // Check if user is authenticated and has user data
+          final authProvider = context.read<AuthProvider>();
+          if (!authProvider.isAuthenticated ||
+              authProvider.currentUser == null) {
+            // Redirect to login if not authenticated
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.of(context).pushReplacementNamed('/login');
+            });
+            // Return loading screen while redirect happens
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+          return const HomePage();
+        },
       },
     );
   }
@@ -123,8 +140,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
       );
     }
 
-    if (authProvider.isAuthenticated) {
+    if (authProvider.isAuthenticated && authProvider.currentUser != null) {
       return const HomePage();
+    }
+
+    // If authenticated but no user, or not authenticated, logout and show login
+    if (authProvider.isAuthenticated && authProvider.currentUser == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        authProvider.logout();
+      });
     }
 
     return const LoginPage();

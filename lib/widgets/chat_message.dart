@@ -22,7 +22,8 @@ class ChatMessage extends StatefulWidget {
   final Set<String>? myReactions;
   final List<MessageAttachment>? attachments;
   final String userId;
-  final String? lastReadId;
+  final bool isLastRead;
+  final bool isSelectedMessage;
 
   const ChatMessage({
     super.key,
@@ -37,14 +38,16 @@ class ChatMessage extends StatefulWidget {
     this.reactions,
     this.myReactions,
     this.attachments,
-    this.lastReadId,
+    required this.isLastRead,
+    this.isSelectedMessage = false,
   });
 
   @override
   State<ChatMessage> createState() => _ChatMessageState();
 }
 
-class _ChatMessageState extends State<ChatMessage> {
+class _ChatMessageState extends State<ChatMessage>
+    with SingleTickerProviderStateMixin {
   // Track both the active message and its overlay
   static String? _activeMessageId;
   static OverlayEntry? _activeOverlay;
@@ -54,6 +57,8 @@ class _ChatMessageState extends State<ChatMessage> {
   bool _isMessageHovered = false; // separate state for background color
   final _overlayWidth = 200.0; // increased width to accommodate both options
   late final _presenceProvider = context.read<PresenceProvider>();
+  late final AnimationController _animationController;
+  late final Animation<double> _fontSizeAnimation;
 
   @override
   void initState() {
@@ -64,6 +69,26 @@ class _ChatMessageState extends State<ChatMessage> {
         _presenceProvider.startTrackingUser(widget.userId);
       }
     });
+
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(seconds: 5),
+      vsync: this,
+    );
+
+    // Create font size animation
+    _fontSizeAnimation = Tween<double>(
+      begin: widget.isSelectedMessage ? 16.0 : 14.0,
+      end: 14.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOut,
+    ));
+
+    // Start animation if this is the selected message
+    if (widget.isSelectedMessage) {
+      _animationController.forward();
+    }
   }
 
   @override
@@ -75,6 +100,7 @@ class _ChatMessageState extends State<ChatMessage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _presenceProvider.stopTrackingUser(widget.userId);
     });
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -402,17 +428,21 @@ class _ChatMessageState extends State<ChatMessage> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        widget.text,
-                        style: const TextStyle(
-                          color: Colors.black,
+                      AnimatedBuilder(
+                        animation: _fontSizeAnimation,
+                        builder: (context, child) => Text(
+                          widget.text,
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: _fontSizeAnimation.value,
+                          ),
                         ),
                       ),
                       if (widget.attachments != null &&
                           widget.attachments!.isNotEmpty)
                         _buildAttachments(),
                       _buildReactions(),
-                      if (widget.lastReadId == _messageId)
+                      if (widget.isLastRead)
                         Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Container(
@@ -570,6 +600,15 @@ class _ChatMessageState extends State<ChatMessage> {
       return '${difference.inSeconds}s ago';
     } else {
       return 'just now';
+    }
+  }
+
+  @override
+  void didUpdateWidget(ChatMessage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isSelectedMessage && !oldWidget.isSelectedMessage) {
+      _animationController.reset();
+      _animationController.forward();
     }
   }
 }

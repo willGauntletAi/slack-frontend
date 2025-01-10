@@ -26,7 +26,6 @@ class _ChatAreaState extends State<ChatArea> {
   late final MessageProvider _messageProvider;
   bool _isSubmittingMessage = false;
   Message? _selectedThreadMessage;
-  String? _lastScrolledChannelId;
   String? _lastLoadedChannelId;
   Timer? _scrollInactivityTimer;
   static const _scrollInactivityDuration = Duration(milliseconds: 500);
@@ -119,37 +118,6 @@ class _ChatAreaState extends State<ChatArea> {
     if (int.parse(newestVisibleMessage.id) >
         int.parse(channel.lastReadMessage ?? '0')) {
       _messageProvider.markMessageAsRead(channel.id, newestVisibleMessage.id);
-    }
-  }
-
-  void _scrollToMessage() {
-    final channel = _channelProvider.selectedChannel;
-    final selectedMessageId = _channelProvider.selectedMessageId;
-    final topLevelMessages =
-        _messageProvider.messages.where((m) => m.parentId == null).toList();
-
-    _lastScrolledChannelId = channel?.id;
-    // Only scroll if we haven't scrolled for this channel yet and there's a selected message
-    if (channel == null ||
-        selectedMessageId == null ||
-        topLevelMessages.length < 15 ||
-        _lastScrolledChannelId == channel.id) {
-      return;
-    }
-
-    // Find the index of the selected message
-    final selectedMessage = _messageProvider.messages.firstWhere(
-        (m) => m.id == selectedMessageId,
-        orElse: () => topLevelMessages.first);
-
-    if (selectedMessage.parentId != null && _itemScrollController.isAttached) {
-      final index =
-          topLevelMessages.indexWhere((m) => m.id == selectedMessage.parentId);
-      _itemScrollController.jumpTo(index: index);
-    } else if (_itemScrollController.isAttached) {
-      final index =
-          topLevelMessages.indexWhere((m) => m.id == selectedMessage.id);
-      _itemScrollController.jumpTo(index: index);
     }
   }
 
@@ -426,11 +394,10 @@ class _ChatAreaState extends State<ChatArea> {
 
         final topLevelMessages =
             messages.where((m) => m.parentId == null).toList();
-
-        // Try to scroll to selected message whenever messages or channel changes
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _scrollToMessage();
-        });
+        var selectedMessageIndex = topLevelMessages
+            .indexWhere((m) => m.id == channelProvider.selectedMessageId);
+        selectedMessageIndex =
+            selectedMessageIndex == -1 ? 0 : selectedMessageIndex;
 
         return Row(
           children: [
@@ -459,6 +426,7 @@ class _ChatAreaState extends State<ChatArea> {
                           padding: const EdgeInsets.all(8.0),
                           itemCount: topLevelMessages.length +
                               (messageProvider.isLoading ? 1 : 0),
+                          initialScrollIndex: selectedMessageIndex,
                           itemBuilder: (context, index) {
                             if (messageProvider.isLoading &&
                                 index == topLevelMessages.length) {
@@ -502,7 +470,10 @@ class _ChatAreaState extends State<ChatArea> {
                               myReactions: _buildMyReactionsSet(
                                   message.reactions, currentUser?.id),
                               attachments: message.attachments,
-                              lastReadId: selectedChannel.lastReadMessage,
+                              isLastRead:
+                                  selectedChannel.lastReadMessage == message.id,
+                              isSelectedMessage: message.id ==
+                                  channelProvider.selectedMessageId,
                             );
                           },
                         );
