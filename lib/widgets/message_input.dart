@@ -25,6 +25,7 @@ class MessageInput extends StatefulWidget {
 
 class _MessageInputState extends State<MessageInput> {
   final _messageController = TextEditingController();
+  final _focusNode = FocusNode();
   final _dio = Dio();
   bool _isSubmittingMessage = false;
   bool _isUploadingFile = false;
@@ -34,6 +35,7 @@ class _MessageInputState extends State<MessageInput> {
   @override
   void dispose() {
     _messageController.dispose();
+    _focusNode.dispose();
     _dio.close();
     super.dispose();
   }
@@ -56,6 +58,7 @@ class _MessageInputState extends State<MessageInput> {
       });
     } else {
       _messageController.clear();
+      _focusNode.requestFocus();
     }
 
     setState(() {
@@ -275,11 +278,16 @@ class _MessageInputState extends State<MessageInput> {
                 Expanded(
                   child: TextField(
                     controller: _messageController,
+                    focusNode: _focusNode,
                     decoration: InputDecoration(
                       hintText: widget.hintText,
                       border: InputBorder.none,
                     ),
-                    onSubmitted: _handleSubmitted,
+                    onSubmitted: (text) {
+                      _handleSubmitted(text);
+                      _focusNode.requestFocus();
+                    },
+                    textInputAction: TextInputAction.send,
                   ),
                 ),
                 IconButton(

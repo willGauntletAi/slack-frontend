@@ -29,7 +29,9 @@ class _ChatAreaState extends State<ChatArea> {
   bool _isSubmittingMessage = false;
   Message? _selectedThreadMessage;
   String? _lastScrolledChannelId;
+  Timer? _scrollInactivityTimer;
   static const _typingThrottleDuration = Duration(milliseconds: 1000);
+  static const _scrollInactivityDuration = Duration(milliseconds: 500);
 
   @override
   void initState() {
@@ -64,6 +66,15 @@ class _ChatAreaState extends State<ChatArea> {
     final topLevelMessages =
         _messageProvider.messages.where((m) => m.parentId == null).toList();
 
+    // Reset the inactivity timer
+    _scrollInactivityTimer?.cancel();
+    _scrollInactivityTimer = Timer(_scrollInactivityDuration, () {
+      _markNewestVisibleMessageAsRead(positions, topLevelMessages);
+    });
+
+    debugPrint('lastIndex: $lastIndex');
+    debugPrint(
+        'lastIndex: topLevelMessages.length: ${topLevelMessages.length}');
     if (channel != null &&
         authProvider.accessToken != null &&
         !_messageProvider.isLoading &&
@@ -73,6 +84,31 @@ class _ChatAreaState extends State<ChatArea> {
         authProvider.accessToken!,
         channel.id,
       );
+    }
+  }
+
+  void _markNewestVisibleMessageAsRead(
+    Iterable<ItemPosition> positions,
+    List<Message> topLevelMessages,
+  ) {
+    final channel = _channelProvider.selectedChannel;
+    if (channel == null || positions.isEmpty || topLevelMessages.isEmpty) {
+      return;
+    }
+
+    // Find the newest visible message (lowest index since list is reversed)
+    debugPrint('positionsLength: ${positions.length}');
+    final lowestVisibleIndex = positions
+        .where((pos) => pos.itemLeadingEdge < 1.0 && pos.itemTrailingEdge > 0.0)
+        .map((pos) => pos.index)
+        .reduce(
+          (min, index) => index < min ? index : min,
+        );
+    debugPrint('lowestVisibleIndex: $lowestVisibleIndex');
+    final newestVisibleMessage = topLevelMessages[lowestVisibleIndex];
+    if (int.parse(newestVisibleMessage.id) >
+        int.parse(channel.lastReadMessage ?? '0')) {
+      _messageProvider.markMessageAsRead(channel.id, newestVisibleMessage.id);
     }
   }
 
@@ -114,6 +150,7 @@ class _ChatAreaState extends State<ChatArea> {
   void dispose() {
     _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
+    _scrollInactivityTimer?.cancel();
     super.dispose();
   }
 

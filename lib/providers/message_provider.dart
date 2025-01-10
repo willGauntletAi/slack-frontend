@@ -577,47 +577,67 @@ class MessageProvider with ChangeNotifier {
   }
 
   void handleDeleteReactionEvent(Map<String, dynamic> data) {
-    // Matches deleteReactionMessageSchema from ws-types.ts
     final channelId = data['channelId'];
+    final messageId = data['messageId'];
     final reactionId = data['reactionId'];
 
     final channelMessages = _channelMessages[channelId];
-    if (channelMessages != null) {
-      // Find the message that contains this reaction
-      for (var i = 0; i < channelMessages.length; i++) {
-        final message = channelMessages[i];
-        final reactionIndex =
-            message.reactions.indexWhere((r) => r.id == reactionId);
+    if (channelMessages == null) return;
 
-        if (reactionIndex != -1) {
-          // Found the message with this reaction
-          final updatedReactions = List<MessageReaction>.from(message.reactions)
-            ..removeAt(reactionIndex);
+    final messageIndex = channelMessages.indexWhere((m) => m.id == messageId);
+    if (messageIndex == -1) return;
 
-          channelMessages[i] = Message(
-            id: message.id,
-            content: message.content,
-            parentId: message.parentId,
-            createdAt: message.createdAt,
-            updatedAt: message.updatedAt,
-            userId: message.userId,
-            username: message.username,
-            channelId: message.channelId,
-            reactions: updatedReactions,
-            attachments: message.attachments,
-          );
+    final message = channelMessages[messageIndex];
+    final updatedReactions =
+        message.reactions.where((r) => r.id != reactionId).toList();
 
-          notifyListeners();
-          break;
-        }
-      }
-    }
+    final updatedMessage = Message(
+      id: message.id,
+      content: message.content,
+      parentId: message.parentId,
+      createdAt: message.createdAt,
+      updatedAt: message.updatedAt,
+      userId: message.userId,
+      username: message.username,
+      channelId: message.channelId,
+      reactions: updatedReactions,
+      attachments: message.attachments,
+    );
+
+    channelMessages[messageIndex] = updatedMessage;
+    _channelMessages[channelId] = channelMessages;
+    notifyListeners();
+  }
+
+  Future<void> markMessageAsRead(String channelId, String messageId) async {
+    // Add mark read method to WebSocket provider
+    _wsProvider.sendMarkRead(channelId, messageId);
+
+    // Find the channel and update its unread count and last read message
+    final channel = channelProvider.channels.firstWhere(
+      (c) => c.id == channelId,
+    );
+
+    // Create updated channel with reset unread count and new last read message
+    final updatedChannel = Channel(
+      id: channel.id,
+      name: channel.name,
+      isPrivate: channel.isPrivate,
+      createdAt: channel.createdAt,
+      updatedAt: channel.updatedAt,
+      usernames: channel.usernames,
+      unreadCount: 0, // Reset unread count
+      lastReadMessage: messageId, // Update last read message
+    );
+
+    // Update the channel in the channel provider
+    channelProvider.updateChannel(updatedChannel);
   }
 
   @override
   void dispose() {
-    channelProvider.removeListener(_handleChannelChange);
     _wsSubscription?.cancel();
+    channelProvider.removeListener(_handleChannelChange);
     super.dispose();
   }
 }

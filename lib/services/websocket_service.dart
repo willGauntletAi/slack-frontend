@@ -155,6 +155,22 @@ class WebSocketService {
     }
   }
 
+  void sendMarkRead(String channelId, String messageId) {
+    debugPrint('Marking message $messageId as read in channel: $channelId');
+    if (!_isConnected) return;
+
+    final message = {
+      'type': 'mark_read',
+      'channelId': channelId,
+      'messageId': messageId,
+    };
+    try {
+      _channel?.sink.add(jsonEncode(message));
+    } catch (e) {
+      _handleDisconnect('Send error: $e');
+    }
+  }
+
   void dispose() {
     _connectionTimeout?.cancel();
     _handleDisconnect('Service disposed');

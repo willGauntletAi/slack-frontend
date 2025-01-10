@@ -54,6 +54,10 @@ class WebSocketProvider with ChangeNotifier {
     _webSocketService.sendPresenceUnsubscribe(userId);
   }
 
+  void sendMarkRead(String channelId, String messageId) {
+    _webSocketService.sendMarkRead(channelId, messageId);
+  }
+
   @override
   void dispose() {
     debugPrint('🔌 WebSocketProvider: Disposing');
