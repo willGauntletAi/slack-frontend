@@ -22,7 +22,7 @@ class WebSocketService {
 
   Future<void> connect(String token) async {
     debugPrint(
-        '🔌 WebSocket: Connection attempt. Current state: connected=${_isConnected}');
+        '🔌 WebSocket: Connection attempt. Current state: connected=$_isConnected');
     if (_isConnected) {
       debugPrint(
           '🔌 WebSocket: Already connected, skipping connection attempt');
