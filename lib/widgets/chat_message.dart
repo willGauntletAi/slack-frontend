@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../config/api_config.dart';
+import '../providers/presence_provider.dart';
 
 class ChatMessage extends StatefulWidget {
   final String text;
@@ -20,6 +21,7 @@ class ChatMessage extends StatefulWidget {
   final Map<String, int>? reactions;
   final Set<String>? myReactions;
   final List<MessageAttachment>? attachments;
+  final String userId;
 
   const ChatMessage({
     super.key,
@@ -27,6 +29,7 @@ class ChatMessage extends StatefulWidget {
     required this.isMe,
     required this.username,
     required this.timestamp,
+    required this.userId,
     this.onReply,
     this.onReaction,
     this.repliable = true,
@@ -50,9 +53,24 @@ class _ChatMessageState extends State<ChatMessage> {
   final _overlayWidth = 200.0; // increased width to accommodate both options
 
   @override
+  void initState() {
+    super.initState();
+    // Start tracking this user's presence when the widget is created
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<PresenceProvider>().startTrackingUser(widget.userId);
+      }
+    });
+  }
+
+  @override
   void dispose() {
     if (_messageId == _activeMessageId) {
       _removeGlobalOverlay();
+    }
+    // Stop tracking presence when widget is disposed
+    if (mounted) {
+      context.read<PresenceProvider>().stopTrackingUser(widget.userId);
     }
     super.dispose();
   }
@@ -471,17 +489,44 @@ class _ChatMessageState extends State<ChatMessage> {
   }
 
   Widget _buildAvatar() {
-    return CircleAvatar(
-      radius: 14,
-      backgroundColor: Colors.grey[300],
-      child: Text(
-        widget.username[0].toUpperCase(),
-        style: const TextStyle(
-          color: Colors.black87,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
+    return Stack(
+      children: [
+        CircleAvatar(
+          radius: 14,
+          backgroundColor: Colors.grey[300],
+          child: Text(
+            widget.username[0].toUpperCase(),
+            style: const TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
+          ),
         ),
-      ),
+        Positioned(
+          right: 0,
+          bottom: 0,
+          child: Consumer<PresenceProvider>(
+            builder: (context, presenceProvider, _) {
+              final status = presenceProvider.getUserPresence(widget.userId);
+              final isOnline = status == 'online';
+
+              return Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: isOnline ? Colors.green : Colors.black,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white,
+                    width: 1,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 

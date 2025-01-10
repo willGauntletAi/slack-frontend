@@ -9,8 +9,20 @@ export const clientTypingMessageSchema = z.object({
   channelId: z.string().uuid(),
 });
 
+export const clientSubscribePresenceSchema = z.object({
+  type: z.literal('subscribe_to_presence'),
+  userId: z.string().uuid(),
+});
+
+export const clientUnsubscribePresenceSchema = z.object({
+  type: z.literal('unsubscribe_to_presence'),
+  userId: z.string().uuid(),
+});
+
 export const clientMessageSchema = z.discriminatedUnion('type', [
   clientTypingMessageSchema,
+  clientSubscribePresenceSchema,
+  clientUnsubscribePresenceSchema,
 ]);
 
 // Server -> Client messages
@@ -25,6 +37,13 @@ export const newMessageSchema = z.object({
     updated_at: z.string(),
     user_id: z.string().uuid(),
     username: z.string(),
+    attachments: z.array(z.object({
+      id: z.string(),
+      file_key: z.string(),
+      filename: z.string(),
+      mime_type: z.string(),
+      size: z.number(),
+    })).default([]),
   }),
 }).openapi({
   description: 'New message event',

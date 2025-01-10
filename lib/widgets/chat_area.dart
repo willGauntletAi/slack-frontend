@@ -354,6 +354,7 @@ class _ChatAreaState extends State<ChatArea> {
                           isMe: isMe,
                           username: message.username,
                           timestamp: message.createdAt,
+                          userId: message.userId,
                           onReply: () {
                             setState(() {
                               _selectedThreadMessage = message;

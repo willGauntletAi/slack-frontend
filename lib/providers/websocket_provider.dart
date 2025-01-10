@@ -46,6 +46,14 @@ class WebSocketProvider with ChangeNotifier {
     _webSocketService.sendTypingIndicator(channelId, isDm);
   }
 
+  void sendPresenceSubscribe(String userId) {
+    _webSocketService.sendPresenceSubscribe(userId);
+  }
+
+  void sendPresenceUnsubscribe(String userId) {
+    _webSocketService.sendPresenceUnsubscribe(userId);
+  }
+
   @override
   void dispose() {
     debugPrint('🔌 WebSocketProvider: Disposing');

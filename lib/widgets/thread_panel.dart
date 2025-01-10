@@ -130,6 +130,7 @@ class _ThreadPanelState extends State<ThreadPanel> {
             isMe: widget.parentMessage!.userId == currentUser?.id,
             username: widget.parentMessage!.username,
             timestamp: widget.parentMessage!.createdAt,
+            userId: widget.parentMessage!.userId,
             repliable: false,
             attachments: widget.parentMessage!.attachments,
           ),
@@ -150,6 +151,7 @@ class _ThreadPanelState extends State<ThreadPanel> {
                   isMe: isMe,
                   username: message.username,
                   timestamp: message.createdAt,
+                  userId: message.userId,
                   repliable: false,
                   attachments: message.attachments,
                 );

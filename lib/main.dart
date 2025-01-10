@@ -10,6 +10,7 @@ import 'providers/message_provider.dart';
 import 'providers/websocket_provider.dart';
 import 'providers/typing_indicator_provider.dart';
 import 'providers/workspace_users_provider.dart';
+import 'providers/presence_provider.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
 import 'pages/home_page.dart';
@@ -49,6 +50,11 @@ void main() async {
           create: (context) => MessageProvider(
             context.read<ChannelProvider>(),
             context.read<AuthProvider>(),
+            context.read<WebSocketProvider>(),
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => PresenceProvider(
             context.read<WebSocketProvider>(),
           ),
         ),

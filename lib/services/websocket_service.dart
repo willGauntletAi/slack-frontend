@@ -125,6 +125,36 @@ class WebSocketService {
     }
   }
 
+  void sendPresenceSubscribe(String userId) {
+    debugPrint('Subscribing to presence for user: $userId');
+    if (!_isConnected) return;
+
+    final message = {
+      'type': 'subscribe_to_presence',
+      'userId': userId,
+    };
+    try {
+      _channel?.sink.add(jsonEncode(message));
+    } catch (e) {
+      _handleDisconnect('Send error: $e');
+    }
+  }
+
+  void sendPresenceUnsubscribe(String userId) {
+    debugPrint('Unsubscribing from presence for user: $userId');
+    if (!_isConnected) return;
+
+    final message = {
+      'type': 'unsubscribe_to_presence',
+      'userId': userId,
+    };
+    try {
+      _channel?.sink.add(jsonEncode(message));
+    } catch (e) {
+      _handleDisconnect('Send error: $e');
+    }
+  }
+
   void dispose() {
     _connectionTimeout?.cancel();
     _handleDisconnect('Service disposed');
