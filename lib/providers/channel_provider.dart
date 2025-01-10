@@ -152,6 +152,7 @@ class ChannelProvider extends ChangeNotifier {
 
   Future<bool> leaveChannel(
       String accessToken, String channelId, String userId) async {
+    debugPrint('leaveChannel: $userId');
     try {
       final response = await http.delete(
         Uri.parse('${ApiConfig.baseUrl}/channel/$channelId/member/$userId'),
@@ -160,6 +161,7 @@ class ChannelProvider extends ChangeNotifier {
           'Authorization': 'Bearer $accessToken',
         },
       );
+      debugPrint('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         _channels.removeWhere((channel) => channel.id == channelId);

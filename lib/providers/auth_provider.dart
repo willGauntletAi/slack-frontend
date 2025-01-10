@@ -3,7 +3,35 @@ import '../services/auth_service.dart';
 import '../config/api_config.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'user_provider.dart';
+
+class User {
+  final String id;
+  final String username;
+  final String email;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  User({
+    required this.id,
+    required this.username,
+    required this.email,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    String? createdAtStr = json['created_at'] ?? json['createdAt'];
+    String? updatedAtStr = json['updated_at'] ?? json['updatedAt'];
+
+    return User(
+      id: json['id'],
+      username: json['username'],
+      email: json['email'],
+      createdAt: createdAtStr != null ? DateTime.parse(createdAtStr) : null,
+      updatedAt: updatedAtStr != null ? DateTime.parse(updatedAtStr) : null,
+    );
+  }
+}
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;

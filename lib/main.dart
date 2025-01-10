@@ -5,7 +5,6 @@ import 'services/auth_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/workspace_provider.dart';
 import 'providers/channel_provider.dart';
-import 'providers/user_provider.dart';
 import 'providers/message_provider.dart';
 import 'providers/websocket_provider.dart';
 import 'providers/typing_indicator_provider.dart';
@@ -25,9 +24,6 @@ void main() async {
       providers: [
         ChangeNotifierProvider(
           create: (_) => AuthProvider(authService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => UserProvider(),
         ),
         ChangeNotifierProvider(
           create: (_) => WorkspaceProvider(),

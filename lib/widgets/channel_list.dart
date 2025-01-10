@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
-import '../providers/user_provider.dart';
 
 class ChannelList extends StatelessWidget {
   final void Function() onCreateChannel;
@@ -123,16 +122,15 @@ class ChannelList extends StatelessWidget {
                                             context); // Close bottom sheet
                                         final authProvider =
                                             context.read<AuthProvider>();
-                                        final userProvider =
-                                            context.read<UserProvider>();
 
                                         if (authProvider.accessToken != null &&
-                                            userProvider.userId != null) {
+                                            authProvider.currentUser?.id !=
+                                                null) {
                                           final success = await channelProvider
                                               .leaveChannel(
                                             authProvider.accessToken!,
                                             channel.id,
-                                            userProvider.userId!,
+                                            authProvider.currentUser!.id,
                                           );
                                           if (context.mounted) {
                                             ScaffoldMessenger.of(context)
