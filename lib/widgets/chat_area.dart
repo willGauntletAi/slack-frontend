@@ -426,6 +426,7 @@ class _ChatAreaState extends State<ChatArea> {
                           myReactions: _buildMyReactionsSet(
                               message.reactions, currentUser?.id),
                           attachments: message.attachments,
+                          lastReadId: selectedChannel.lastReadMessage,
                         );
                       },
                     );

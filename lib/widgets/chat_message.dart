@@ -22,6 +22,7 @@ class ChatMessage extends StatefulWidget {
   final Set<String>? myReactions;
   final List<MessageAttachment>? attachments;
   final String userId;
+  final String? lastReadId;
 
   const ChatMessage({
     super.key,
@@ -36,6 +37,7 @@ class ChatMessage extends StatefulWidget {
     this.reactions,
     this.myReactions,
     this.attachments,
+    this.lastReadId,
   });
 
   @override
@@ -409,6 +411,25 @@ class _ChatMessageState extends State<ChatMessage> {
                           widget.attachments!.isNotEmpty)
                         _buildAttachments(),
                       _buildReactions(),
+                      if (widget.lastReadId == _messageId)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0, vertical: 4.0),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'Last read',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
