@@ -83,68 +83,93 @@ class ChannelList extends StatelessWidget {
                     ),
                     selected: isSelected,
                     onTap: () => channelProvider.selectChannel(channel),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.more_vert),
-                      onPressed: () {
-                        showModalBottomSheet(
-                          context: context,
-                          builder: (context) => SafeArea(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ListTile(
-                                  leading: const Icon(Icons.exit_to_app),
-                                  title: const Text('Leave Channel'),
-                                  onTap: () async {
-                                    Navigator.pop(
-                                        context); // Close bottom sheet
-                                    final authProvider =
-                                        context.read<AuthProvider>();
-                                    final userProvider =
-                                        context.read<UserProvider>();
-
-                                    if (authProvider.accessToken != null &&
-                                        userProvider.userId != null) {
-                                      final success =
-                                          await channelProvider.leaveChannel(
-                                        authProvider.accessToken!,
-                                        channel.id,
-                                        userProvider.userId!,
-                                      );
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              success
-                                                  ? 'Left ${channel.name}'
-                                                  : channelProvider.error ??
-                                                      'Failed to leave channel',
-                                            ),
-                                            backgroundColor:
-                                                success ? null : Colors.red,
-                                          ),
-                                        );
-                                      }
-                                    } else {
-                                      if (context.mounted) {
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                                'Unable to leave channel: User ID not found'),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                      }
-                                    }
-                                  },
-                                ),
-                              ],
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (channel.unreadCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              channel.unreadCount > 9
+                                  ? '9+'
+                                  : channel.unreadCount.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                        );
-                      },
+                        IconButton(
+                          icon: const Icon(Icons.more_vert),
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              builder: (context) => SafeArea(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ListTile(
+                                      leading: const Icon(Icons.exit_to_app),
+                                      title: const Text('Leave Channel'),
+                                      onTap: () async {
+                                        Navigator.pop(
+                                            context); // Close bottom sheet
+                                        final authProvider =
+                                            context.read<AuthProvider>();
+                                        final userProvider =
+                                            context.read<UserProvider>();
+
+                                        if (authProvider.accessToken != null &&
+                                            userProvider.userId != null) {
+                                          final success = await channelProvider
+                                              .leaveChannel(
+                                            authProvider.accessToken!,
+                                            channel.id,
+                                            userProvider.userId!,
+                                          );
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                  success
+                                                      ? 'Left ${channel.name}'
+                                                      : channelProvider.error ??
+                                                          'Failed to leave channel',
+                                                ),
+                                                backgroundColor:
+                                                    success ? null : Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        } else {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                    'Unable to leave channel: User ID not found'),
+                                                backgroundColor: Colors.red,
+                                              ),
+                                            );
+                                          }
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   );
                 },

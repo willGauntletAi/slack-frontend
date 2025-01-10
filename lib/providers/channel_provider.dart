@@ -10,6 +10,9 @@ class Channel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<String> usernames;
+  final int unreadCount;
+  final String? lastReadMessage;
+
   Channel({
     required this.id,
     this.name,
@@ -17,6 +20,8 @@ class Channel {
     required this.createdAt,
     required this.updatedAt,
     required this.usernames,
+    required this.unreadCount,
+    this.lastReadMessage,
   });
 
   factory Channel.fromJson(Map<String, dynamic> json) {
@@ -29,6 +34,8 @@ class Channel {
       usernames: (json['usernames'] as List<dynamic>)
           .map((e) => e.toString())
           .toList(),
+      unreadCount: json['unread_count'] ?? 0,
+      lastReadMessage: json['last_read_message'],
     );
   }
 }
@@ -46,6 +53,20 @@ class ChannelProvider extends ChangeNotifier {
 
   void selectChannel(Channel? channel) {
     if (_selectedChannel?.id != channel?.id) {
+      if (channel != null) {
+        // Reset unread count when selecting a channel
+        final updatedChannel = Channel(
+          id: channel.id,
+          name: channel.name,
+          isPrivate: channel.isPrivate,
+          createdAt: channel.createdAt,
+          updatedAt: channel.updatedAt,
+          usernames: channel.usernames,
+          unreadCount: 0,
+          lastReadMessage: channel.lastReadMessage,
+        );
+        updateChannel(updatedChannel);
+      }
       _selectedChannel = channel;
       notifyListeners();
     }
@@ -221,5 +242,16 @@ class ChannelProvider extends ChangeNotifier {
     _selectedChannel = null;
     _error = null;
     notifyListeners();
+  }
+
+  void updateChannel(Channel updatedChannel) {
+    final index = _channels.indexWhere((c) => c.id == updatedChannel.id);
+    if (index != -1) {
+      _channels[index] = updatedChannel;
+      if (_selectedChannel?.id == updatedChannel.id) {
+        _selectedChannel = updatedChannel;
+      }
+      notifyListeners();
+    }
   }
 }

@@ -448,6 +448,13 @@
               "items": {
                 "type": "string"
               }
+            },
+            "unread_count": {
+              "type": "number"
+            },
+            "last_read_message": {
+              "type": "string",
+              "nullable": true
             }
           },
           "required": [
@@ -456,7 +463,9 @@
             "is_private",
             "created_at",
             "updated_at",
-            "usernames"
+            "usernames",
+            "unread_count",
+            "last_read_message"
           ]
         }
       },
@@ -492,6 +501,13 @@
               "items": {
                 "type": "string"
               }
+            },
+            "unread_count": {
+              "type": "number"
+            },
+            "last_read_message": {
+              "type": "string",
+              "nullable": true
             }
           },
           "required": [
@@ -502,7 +518,9 @@
             "updated_at",
             "workspace_id",
             "workspace_name",
-            "usernames"
+            "usernames",
+            "unread_count",
+            "last_read_message"
           ]
         }
       },
@@ -1263,8 +1281,16 @@
                   "email": {
                     "type": "string",
                     "format": "email"
+                  },
+                  "override_status": {
+                    "type": "string",
+                    "enum": [
+                      "online",
+                      "offline"
+                    ]
                   }
-                }
+                },
+                "description": "Update profile request body"
               }
             }
           }
@@ -2737,8 +2763,7 @@
                 "type": "object",
                 "properties": {
                   "content": {
-                    "type": "string",
-                    "minLength": 1
+                    "type": "string"
                   },
                   "parent_id": {
                     "type": "string"

@@ -228,6 +228,27 @@ class MessageProvider with ChangeNotifier {
     }
     _channelMessages[newMessage.channelId] = channelMessages;
     debugPrint('Updated messages in channel: ${channelMessages.length}');
+
+    // Increment unread count if this is not the currently selected channel
+    // and the message is not from the current user
+    if (newMessage.channelId != _currentChannelId &&
+        newMessage.userId != authProvider.currentUser?.id) {
+      final channel = channelProvider.channels.firstWhere(
+        (c) => c.id == newMessage.channelId,
+      );
+      final updatedChannel = Channel(
+        id: channel.id,
+        name: channel.name,
+        isPrivate: channel.isPrivate,
+        createdAt: channel.createdAt,
+        updatedAt: channel.updatedAt,
+        usernames: channel.usernames,
+        unreadCount: channel.unreadCount + 1,
+        lastReadMessage: channel.lastReadMessage,
+      );
+      channelProvider.updateChannel(updatedChannel);
+    }
+
     notifyListeners();
   }
 

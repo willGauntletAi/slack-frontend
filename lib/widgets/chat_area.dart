@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'dart:async';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
@@ -20,21 +21,23 @@ class ChatArea extends StatefulWidget {
 
 class _ChatAreaState extends State<ChatArea> {
   final _messageController = TextEditingController();
-  final _scrollController = ScrollController();
+  final _itemScrollController = ItemScrollController();
+  final _itemPositionsListener = ItemPositionsListener.create();
   late final ChannelProvider _channelProvider;
   late final MessageProvider _messageProvider;
   DateTime? _lastTypingIndicatorSent;
   bool _isSubmittingMessage = false;
   Message? _selectedThreadMessage;
+  String? _lastScrolledChannelId;
   static const _typingThrottleDuration = Duration(milliseconds: 1000);
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
     _channelProvider = context.read<ChannelProvider>();
     _messageProvider = context.read<MessageProvider>();
     _messageController.addListener(_onTextChanged);
+    _itemPositionsListener.itemPositions.addListener(_onScroll);
   }
 
   void _onTextChanged() {
@@ -52,20 +55,58 @@ class _ChatAreaState extends State<ChatArea> {
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent * 0.9) {
-      final channel = _channelProvider.selectedChannel;
-      final authProvider = context.read<AuthProvider>();
+    final positions = _itemPositionsListener.itemPositions.value;
+    if (positions.isEmpty) return;
 
-      if (channel != null &&
-          authProvider.accessToken != null &&
-          !_messageProvider.isLoading &&
-          _messageProvider.hasMore) {
-        _messageProvider.loadMessages(
-          authProvider.accessToken!,
-          channel.id,
-        );
-      }
+    final lastIndex = positions.last.index;
+    final channel = _channelProvider.selectedChannel;
+    final authProvider = context.read<AuthProvider>();
+    final topLevelMessages =
+        _messageProvider.messages.where((m) => m.parentId == null).toList();
+
+    if (channel != null &&
+        authProvider.accessToken != null &&
+        !_messageProvider.isLoading &&
+        _messageProvider.hasMore &&
+        lastIndex >= topLevelMessages.length - 5) {
+      _messageProvider.loadMessages(
+        authProvider.accessToken!,
+        channel.id,
+      );
+    }
+  }
+
+  void _scrollToLastRead() {
+    final channel = _channelProvider.selectedChannel;
+    final topLevelMessages =
+        _messageProvider.messages.where((m) => m.parentId == null).toList();
+
+    // Only scroll if we haven't scrolled for this channel yet
+    if (channel == null ||
+        topLevelMessages.length < 15 ||
+        _lastScrolledChannelId == channel.id) {
+      return;
+    }
+
+    _lastScrolledChannelId = channel.id;
+
+    if (channel.lastReadMessage == null) {
+      // Scroll to top if no last read message
+      _itemScrollController.jumpTo(index: topLevelMessages.length - 1);
+      return;
+    }
+
+    // Find the index of the last read message
+    final lastRead = _messageProvider.messages.firstWhere(
+        (m) => m.id == channel.lastReadMessage,
+        orElse: () => topLevelMessages.first);
+    if (lastRead.parentId != null) {
+      final index =
+          topLevelMessages.indexWhere((m) => m.id == lastRead.parentId);
+      _itemScrollController.jumpTo(index: index);
+    } else {
+      final index = topLevelMessages.indexWhere((m) => m.id == lastRead.id);
+      _itemScrollController.jumpTo(index: index);
     }
   }
 
@@ -73,7 +114,6 @@ class _ChatAreaState extends State<ChatArea> {
   void dispose() {
     _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
-    _scrollController.dispose();
     super.dispose();
   }
 
@@ -313,6 +353,12 @@ class _ChatAreaState extends State<ChatArea> {
     }
 
     final topLevelMessages = messages.where((m) => m.parentId == null).toList();
+
+    // Try to scroll to last read message whenever messages or channel changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToLastRead();
+    });
+
     return Row(
       children: [
         Expanded(
@@ -332,8 +378,9 @@ class _ChatAreaState extends State<ChatArea> {
                       );
                     }
 
-                    return ListView.builder(
-                      controller: _scrollController,
+                    return ScrollablePositionedList.builder(
+                      itemScrollController: _itemScrollController,
+                      itemPositionsListener: _itemPositionsListener,
                       reverse: true,
                       padding: const EdgeInsets.all(8.0),
                       itemCount: topLevelMessages.length +
@@ -345,7 +392,6 @@ class _ChatAreaState extends State<ChatArea> {
                               child: CircularProgressIndicator());
                         }
 
-                        // Filter out messages with a parent_id and get the message at the current index
                         final message = topLevelMessages[index];
                         final isMe = message.userId == currentUser?.id;
 
@@ -369,11 +415,9 @@ class _ChatAreaState extends State<ChatArea> {
                                 r.emoji == emoji);
 
                             if (hasReaction.isNotEmpty) {
-                              // Remove reaction - pass the reaction ID
                               await _messageProvider.removeReaction(
                                   message.id, hasReaction.first.id);
                             } else {
-                              // Add reaction
                               await _messageProvider.addReaction(
                                   message.id, emoji);
                             }
