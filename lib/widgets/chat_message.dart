@@ -71,10 +71,10 @@ class _ChatMessageState extends State<ChatMessage> {
     if (_messageId == _activeMessageId) {
       _removeGlobalOverlay();
     }
-    // Stop tracking presence when widget is disposed
-    if (mounted) {
+    // Schedule presence tracking cleanup for the next frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       _presenceProvider.stopTrackingUser(widget.userId);
-    }
+    });
     super.dispose();
   }
 
