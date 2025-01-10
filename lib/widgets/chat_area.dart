@@ -25,12 +25,10 @@ class _ChatAreaState extends State<ChatArea> {
   final _itemPositionsListener = ItemPositionsListener.create();
   late final ChannelProvider _channelProvider;
   late final MessageProvider _messageProvider;
-  DateTime? _lastTypingIndicatorSent;
   bool _isSubmittingMessage = false;
   Message? _selectedThreadMessage;
   String? _lastScrolledChannelId;
   Timer? _scrollInactivityTimer;
-  static const _typingThrottleDuration = Duration(milliseconds: 1000);
   static const _scrollInactivityDuration = Duration(milliseconds: 500);
 
   @override
@@ -38,7 +36,6 @@ class _ChatAreaState extends State<ChatArea> {
     super.initState();
     _channelProvider = context.read<ChannelProvider>();
     _messageProvider = context.read<MessageProvider>();
-    _messageController.addListener(_onTextChanged);
     _itemPositionsListener.itemPositions.addListener(_onScroll);
 
     // Load initial messages whenever channel or selectedMessageId changes
@@ -56,20 +53,6 @@ class _ChatAreaState extends State<ChatArea> {
         channel.id,
         around: messageId,
       );
-    }
-  }
-
-  void _onTextChanged() {
-    if (_isSubmittingMessage) return;
-
-    final channel = _channelProvider.selectedChannel;
-    if (channel == null) return;
-
-    final now = DateTime.now();
-    if (_lastTypingIndicatorSent == null ||
-        now.difference(_lastTypingIndicatorSent!) >= _typingThrottleDuration) {
-      context.read<WebSocketProvider>().sendTypingIndicator(channel.id, false);
-      _lastTypingIndicatorSent = now;
     }
   }
 
@@ -170,7 +153,6 @@ class _ChatAreaState extends State<ChatArea> {
 
   @override
   void dispose() {
-    _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _scrollInactivityTimer?.cancel();
     _channelProvider.removeListener(_handleChannelChange);

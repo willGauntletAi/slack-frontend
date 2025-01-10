@@ -145,7 +145,7 @@ class WebSocketService {
     if (!_isConnected) return;
 
     final message = {
-      'type': 'unsubscribe_to_presence',
+      'type': 'unsubscribe_from_presence',
       'userId': userId,
     };
     try {

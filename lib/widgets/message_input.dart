@@ -3,6 +3,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/message_provider.dart';
+import '../providers/channel_provider.dart';
+import '../providers/websocket_provider.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import 'dart:convert';
@@ -31,9 +33,32 @@ class _MessageInputState extends State<MessageInput> {
   bool _isUploadingFile = false;
   final List<MessageAttachment> _uploadedFiles = [];
   final Map<String, double> _uploadProgress = {};
+  DateTime? _lastTypingIndicatorSent;
+  static const _typingThrottleDuration = Duration(milliseconds: 1000);
+
+  @override
+  void initState() {
+    super.initState();
+    _messageController.addListener(_onTextChanged);
+  }
+
+  void _onTextChanged() {
+    if (_isSubmittingMessage) return;
+
+    final channel = context.read<ChannelProvider>().selectedChannel;
+    if (channel == null) return;
+
+    final now = DateTime.now();
+    if (_lastTypingIndicatorSent == null ||
+        now.difference(_lastTypingIndicatorSent!) >= _typingThrottleDuration) {
+      context.read<WebSocketProvider>().sendTypingIndicator(channel.id, false);
+      _lastTypingIndicatorSent = now;
+    }
+  }
 
   @override
   void dispose() {
+    _messageController.removeListener(_onTextChanged);
     _messageController.dispose();
     _focusNode.dispose();
     _dio.close();
