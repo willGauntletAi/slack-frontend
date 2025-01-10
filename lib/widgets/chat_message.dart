@@ -53,6 +53,7 @@ class _ChatMessageState extends State<ChatMessage> {
   bool _isHovering = false;
   bool _isMessageHovered = false; // separate state for background color
   final _overlayWidth = 200.0; // increased width to accommodate both options
+  late final _presenceProvider = context.read<PresenceProvider>();
 
   @override
   void initState() {
@@ -60,7 +61,7 @@ class _ChatMessageState extends State<ChatMessage> {
     // Start tracking this user's presence when the widget is created
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<PresenceProvider>().startTrackingUser(widget.userId);
+        _presenceProvider.startTrackingUser(widget.userId);
       }
     });
   }
@@ -72,7 +73,7 @@ class _ChatMessageState extends State<ChatMessage> {
     }
     // Stop tracking presence when widget is disposed
     if (mounted) {
-      context.read<PresenceProvider>().stopTrackingUser(widget.userId);
+      _presenceProvider.stopTrackingUser(widget.userId);
     }
     super.dispose();
   }

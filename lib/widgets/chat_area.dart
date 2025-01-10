@@ -136,11 +136,11 @@ class _ChatAreaState extends State<ChatArea> {
     final lastRead = _messageProvider.messages.firstWhere(
         (m) => m.id == channel.lastReadMessage,
         orElse: () => topLevelMessages.first);
-    if (lastRead.parentId != null) {
+    if (lastRead.parentId != null && _itemScrollController.isAttached) {
       final index =
           topLevelMessages.indexWhere((m) => m.id == lastRead.parentId);
       _itemScrollController.jumpTo(index: index);
-    } else {
+    } else if (_itemScrollController.isAttached) {
       final index = topLevelMessages.indexWhere((m) => m.id == lastRead.id);
       _itemScrollController.jumpTo(index: index);
     }
