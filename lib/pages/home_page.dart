@@ -5,9 +5,11 @@ import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/message_provider.dart';
+import '../providers/search_provider.dart';
 import '../widgets/workspace_list.dart';
 import '../widgets/channel_list.dart';
 import '../widgets/chat_area.dart';
+import '../widgets/search_area.dart';
 import '../widgets/dm_list.dart';
 import '../widgets/create_dm_dialog.dart';
 
@@ -21,6 +23,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   VoidCallback? _workspaceListener;
   late final WorkspaceProvider _workspaceProvider;
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -406,7 +409,16 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  WorkspaceHeader(onInviteUser: _showInviteDialog),
+                  WorkspaceHeader(
+                    onInviteUser: _showInviteDialog,
+                    onSearch: () {
+                      setState(() {
+                        _isSearching = true;
+                      });
+                      // Clear previous search results when starting a new search
+                      context.read<SearchProvider>().clearResults();
+                    },
+                  ),
                   // Channels section
                   const Padding(
                     padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -445,13 +457,21 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          // Chat area
+          // Chat or Search area
           Expanded(
-            child: selectedChannel != null
-                ? const ChatArea()
-                : const Center(
-                    child: Text('Select a channel or conversation'),
-                  ),
+            child: _isSearching
+                ? SearchArea(
+                    onClose: () {
+                      setState(() {
+                        _isSearching = false;
+                      });
+                    },
+                  )
+                : selectedChannel != null
+                    ? const ChatArea()
+                    : const Center(
+                        child: Text('Select a channel or conversation'),
+                      ),
           ),
         ],
       ),
