@@ -379,99 +379,120 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
+    final selectedWorkspace =
+        context.watch<WorkspaceProvider>().selectedWorkspace;
 
     return Scaffold(
       body: Row(
         children: [
-          // Workspace list
-          SizedBox(
-            width: 80,
-            child: Material(
-              elevation: 2,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: WorkspaceList(
-                      onCreateWorkspace: _showCreateWorkspaceDialog,
+          // Workspace list - expands to full width if no workspace selected
+          selectedWorkspace == null
+              ? Expanded(
+                  child: Material(
+                    elevation: 2,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: WorkspaceList(
+                            onCreateWorkspace: _showCreateWorkspaceDialog,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                ],
-              ),
-            ),
-          ),
-          // Channel list and DM list
-          SizedBox(
-            width: 250,
-            child: Material(
-              elevation: 1,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  WorkspaceHeader(
-                    onInviteUser: _showInviteDialog,
-                    onSearch: () {
-                      setState(() {
-                        _isSearching = true;
-                      });
-                      // Clear previous search results when starting a new search
-                      context.read<SearchProvider>().clearResults();
-                    },
-                  ),
-                  // Channels section
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Text(
-                      'Channels',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
+                )
+              : SizedBox(
+                  width: 80,
+                  child: Material(
+                    elevation: 2,
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: WorkspaceList(
+                            onCreateWorkspace: _showCreateWorkspaceDialog,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                     ),
                   ),
-                  Expanded(
-                    child: ChannelList(
-                      onCreateChannel: _showCreateChannelDialog,
-                      onJoinChannel: _showJoinChannelDialog,
+                ),
+          // Only show sidebar and chat area if a workspace is selected
+          if (selectedWorkspace != null) ...[
+            // Channel list and DM list
+            SizedBox(
+              width: 250,
+              child: Material(
+                elevation: 1,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    WorkspaceHeader(
                       onInviteUser: _showInviteDialog,
+                      onSearch: () {
+                        setState(() {
+                          _isSearching = true;
+                        });
+                        // Clear previous search results when starting a new search
+                        context.read<SearchProvider>().clearResults();
+                      },
                     ),
-                  ),
-                  // Direct Messages section
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Text(
-                      'Direct Messages',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                    // Channels section
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Text(
+                        'Channels',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                  ),
-                  Expanded(
-                    child: DMList(
-                      onCreateDmChannel: _showCreateDmChannelDialog,
+                    Expanded(
+                      child: ChannelList(
+                        onCreateChannel: _showCreateChannelDialog,
+                        onJoinChannel: _showJoinChannelDialog,
+                        onInviteUser: _showInviteDialog,
+                      ),
                     ),
-                  ),
-                ],
+                    // Direct Messages section
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Text(
+                        'Direct Messages',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: DMList(
+                        onCreateDmChannel: _showCreateDmChannelDialog,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          // Chat or Search area
-          Expanded(
-            child: _isSearching
-                ? SearchArea(
-                    onClose: () {
-                      setState(() {
-                        _isSearching = false;
-                      });
-                    },
-                  )
-                : selectedChannel != null
-                    ? const ChatArea()
-                    : const Center(
-                        child: Text('Select a channel or conversation'),
-                      ),
-          ),
+            // Chat or Search area
+            Expanded(
+              child: _isSearching
+                  ? SearchArea(
+                      onClose: () {
+                        setState(() {
+                          _isSearching = false;
+                        });
+                      },
+                    )
+                  : selectedChannel != null
+                      ? const ChatArea()
+                      : const Center(
+                          child: Text('Select a channel or conversation'),
+                        ),
+            ),
+          ],
         ],
       ),
     );

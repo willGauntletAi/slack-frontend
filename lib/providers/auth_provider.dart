@@ -39,29 +39,47 @@ class AuthProvider extends ChangeNotifier {
   bool _isAuthenticated = false;
   bool _isLoading = true;
   User? _currentUser;
+  bool _isInitialized = false;
 
-  AuthProvider(this._authService) {
-    _checkAuthStatus();
-  }
+  AuthProvider(this._authService);
 
   String? get accessToken => _accessToken;
   bool get isAuthenticated => _isAuthenticated;
-  bool get isLoading => _isLoading;
+  bool get isLoading => _isLoading || !_isInitialized;
   User? get currentUser => _currentUser;
 
+  Future<void> initialize() async {
+    if (_isInitialized) return;
+    await _checkAuthStatus();
+    _isInitialized = true;
+  }
+
   Future<void> _checkAuthStatus() async {
-    _isLoading = true;
-    notifyListeners();
+    if (!_isLoading) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     try {
+      debugPrint('🔑 Auth: Checking auth status...');
       final refreshToken = await _authService.getRefreshToken();
       final userData = await _authService.getUserData();
+      debugPrint(
+          '🔑 Auth: Found refresh token: ${refreshToken != null}, user data: ${userData != null}');
 
       if (refreshToken != null && userData != null) {
         _currentUser = User.fromJson(userData);
         await _refreshAccessToken(refreshToken);
+        debugPrint(
+            '🔑 Auth: Refresh successful - isAuthenticated: $_isAuthenticated');
+      } else {
+        _isAuthenticated = false;
+        _accessToken = null;
+        _currentUser = null;
+        debugPrint('🔑 Auth: No stored credentials found');
       }
     } catch (e) {
+      debugPrint('❌ Auth: Error checking auth status - $e');
       _isAuthenticated = false;
       _accessToken = null;
       _currentUser = null;
@@ -69,6 +87,15 @@ class AuthProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> attemptTokenRefresh() async {
+    try {
+      await _checkAuthStatus();
+      return _isAuthenticated && _accessToken != null;
+    } catch (e) {
+      return false;
     }
   }
 
