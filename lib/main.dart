@@ -47,9 +47,8 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (context) => MessageProvider(
-            context.read<ChannelProvider>(),
-            context.read<AuthProvider>(),
-            context.read<WebSocketProvider>(),
+            authProvider: context.read<AuthProvider>(),
+            wsProvider: context.read<WebSocketProvider>(),
           ),
         ),
         ChangeNotifierProvider(

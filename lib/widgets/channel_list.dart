@@ -85,7 +85,9 @@ class ChannelList extends StatelessWidget {
                     selected: isSelected,
                     onTap: () => channelProvider.selectChannel(
                       channel,
-                      messageId: channel.lastReadMessage,
+                      messageId: channel.unreadCount > 50
+                          ? channel.lastReadMessage
+                          : null,
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,

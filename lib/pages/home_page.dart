@@ -65,7 +65,6 @@ class _HomePageState extends State<HomePage> {
         }
       } else {
         context.read<ChannelProvider>().clearChannels();
-        context.read<MessageProvider>().clearAllChannels();
       }
     };
     _workspaceProvider.addListener(_workspaceListener!);

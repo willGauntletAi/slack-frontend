@@ -57,7 +57,6 @@ class _ThreadPanelState extends State<ThreadPanel> {
     }
 
     final message = await context.read<MessageProvider>().sendMessage(
-          authProvider.accessToken!,
           channelId,
           text,
           parentId: parentId,
