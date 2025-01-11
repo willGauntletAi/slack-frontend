@@ -1,15 +1,20 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'build_config.dart';
 
 class ApiConfig {
   static String get baseUrl {
-    // For web, always use localhost
+    if (BuildConfig.isProduction) {
+      return 'http://ec2-3-139-67-107.us-east-2.compute.amazonaws.com:80';
+    }
+
+    // Development URLs
     if (kIsWeb) {
       return 'http://localhost:3000';
     }
 
-    // For iOS Simulator and macOS, we need to use localhost.
+    // For iOS Simulator and macOS, we need to use localhost
     if (Platform.isIOS || Platform.isMacOS) {
       return 'http://127.0.0.1:3000';
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/workspace_provider.dart';
+import '../providers/channel_provider.dart';
 
 class WorkspaceList extends StatelessWidget {
   final void Function() onCreateWorkspace;
@@ -141,8 +142,120 @@ class WorkspaceList extends StatelessWidget {
                       child: Stack(
                         children: [
                           InkWell(
-                            onTap: () =>
-                                workspaceProvider.selectWorkspace(workspace),
+                            onTap: () {
+                              if (workspace.isInvited) {
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (context) => AlertDialog(
+                                    title:
+                                        Text('Invitation to ${workspace.name}'),
+                                    content: const Text(
+                                        'Would you like to join this workspace?'),
+                                    actions: [
+                                      TextButton.icon(
+                                        onPressed: () async {
+                                          final authProvider =
+                                              context.read<AuthProvider>();
+                                          if (authProvider.accessToken !=
+                                              null) {
+                                            final success =
+                                                await workspaceProvider
+                                                    .rejectInvite(
+                                              authProvider.accessToken!,
+                                              workspace.id,
+                                              authProvider.currentUser!.id,
+                                            );
+
+                                            if (context.mounted) {
+                                              Navigator.pop(context);
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    success
+                                                        ? 'Rejected invitation to ${workspace.name}'
+                                                        : workspaceProvider
+                                                                .error ??
+                                                            'Failed to reject invitation',
+                                                  ),
+                                                  backgroundColor: success
+                                                      ? null
+                                                      : Colors.red,
+                                                ),
+                                              );
+
+                                              if (success) {
+                                                workspaceProvider
+                                                    .clearSelectedWorkspace();
+                                                context
+                                                    .read<ChannelProvider>()
+                                                    .clearChannels();
+                                              }
+                                            }
+                                          }
+                                        },
+                                        icon: const Icon(Icons.close),
+                                        label: const Text('Reject'),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.red,
+                                        ),
+                                      ),
+                                      ElevatedButton.icon(
+                                        onPressed: () async {
+                                          final authProvider =
+                                              context.read<AuthProvider>();
+                                          if (authProvider.accessToken !=
+                                              null) {
+                                            final success =
+                                                await workspaceProvider
+                                                    .acceptInvite(
+                                              authProvider.accessToken!,
+                                              workspace.id,
+                                            );
+
+                                            if (context.mounted) {
+                                              Navigator.pop(context);
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    success
+                                                        ? 'Joined ${workspace.name}'
+                                                        : workspaceProvider
+                                                                .error ??
+                                                            'Failed to join workspace',
+                                                  ),
+                                                  backgroundColor: success
+                                                      ? Colors.green
+                                                      : Colors.red,
+                                                ),
+                                              );
+
+                                              if (success) {
+                                                await context
+                                                    .read<ChannelProvider>()
+                                                    .fetchChannels(
+                                                      authProvider.accessToken!,
+                                                      workspace.id,
+                                                    );
+                                              }
+                                            }
+                                          }
+                                        },
+                                        icon: const Icon(Icons.check),
+                                        label: const Text('Accept'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green,
+                                          foregroundColor: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }
+                              workspaceProvider.selectWorkspace(workspace);
+                            },
                             customBorder: const CircleBorder(),
                             child: Container(
                               width: isFullScreen ? 64 : 48,

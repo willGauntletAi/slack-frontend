@@ -3,6 +3,18 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../config/api_config.dart';
 
+class User {
+  final String id;
+  final String username;
+  final String email;
+
+  User({
+    required this.id,
+    required this.username,
+    required this.email,
+  });
+}
+
 class Workspace {
   final String id;
   final String name;
@@ -110,6 +122,11 @@ class WorkspaceProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void clearSelectedWorkspace() {
+    _selectedWorkspace = null;
+    notifyListeners();
+  }
+
   Future<bool> inviteUser(
       String token, String workspaceId, String email) async {
     try {
@@ -178,10 +195,11 @@ class WorkspaceProvider with ChangeNotifier {
     }
   }
 
-  Future<bool> rejectInvite(String token, String workspaceId) async {
+  Future<bool> rejectInvite(
+      String token, String workspaceId, String userId) async {
     try {
       final response = await http.delete(
-        Uri.parse('${ApiConfig.baseUrl}/workspace/$workspaceId/member/me'),
+        Uri.parse('${ApiConfig.baseUrl}/workspace/$workspaceId/member/$userId'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -189,10 +207,21 @@ class WorkspaceProvider with ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        // Refresh the workspace list to update available workspaces
-        _selectedWorkspace = null;
+        // Clear the selected workspace if it's the one being rejected
+        if (_selectedWorkspace?.id == workspaceId) {
+          _selectedWorkspace = null;
+        }
+
+        // Refresh the workspace list
         await fetchWorkspaces(token);
+
+        // If we cleared the selected workspace, select the first available one
+        if (_selectedWorkspace == null && _workspaces.isNotEmpty) {
+          _selectedWorkspace = _workspaces.first;
+        }
+
         _error = null;
+        notifyListeners();
         return true;
       } else {
         final error = json.decode(response.body);

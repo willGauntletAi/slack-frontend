@@ -376,6 +376,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _handleWorkspaceSelection(Workspace workspace) {
+    final workspaceProvider = context.read<WorkspaceProvider>();
+    workspaceProvider.selectWorkspace(workspace);
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
