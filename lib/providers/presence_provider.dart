@@ -45,13 +45,6 @@ class PresenceProvider with ChangeNotifier {
       _userTrackingCount.remove(userId);
       _userPresence.remove(userId);
       _wsProvider.sendPresenceUnsubscribe(userId);
-      // Only notify if we're not disposed
-      try {
-        notifyListeners();
-      } catch (e) {
-        // Ignore errors during disposal
-        debugPrint('Presence update ignored during disposal');
-      }
     } else {
       _userTrackingCount[userId] = newCount;
     }
