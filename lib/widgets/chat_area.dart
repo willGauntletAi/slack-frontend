@@ -7,6 +7,8 @@ import '../providers/workspace_provider.dart';
 import '../providers/channel_provider.dart';
 import '../providers/message_provider.dart';
 import '../providers/typing_indicator_provider.dart';
+import '../providers/scroll_retention_provider.dart';
+import '../util/position_retained_scroll_physics.dart';
 import 'chat_message.dart';
 import 'thread_panel.dart';
 import 'message_input.dart';
@@ -24,7 +26,8 @@ class _ChatAreaState extends State<ChatArea> {
   final _itemPositionsListener = ItemPositionsListener.create();
   late final ChannelProvider _channelProvider;
   late final MessageProvider _messageProvider;
-  bool _isSubmittingMessage = false;
+  final _scrollRetentionState = ScrollRetentionState();
+  bool _isAtBottom = false;
   Message? _selectedThreadMessage;
   String? _lastLoadedChannelId;
   Timer? _scrollInactivityTimer;
@@ -36,23 +39,40 @@ class _ChatAreaState extends State<ChatArea> {
     _channelProvider = context.read<ChannelProvider>();
     _messageProvider = context.read<MessageProvider>();
     _itemPositionsListener.itemPositions.addListener(_onScroll);
+    _isAtBottom = _channelProvider.selectedMessageId == null;
+    _updateScrollRetention();
+    _channelProvider.addListener(_handleChannelChange);
+    _updateScrollRetention();
+    _handleChannelChange();
+  }
+
+  void _updateScrollRetention() {
+    final topLevelMessages =
+        _messageProvider.messages.where((m) => m.parentId == null).toList();
+    final shouldRetain = (!_isAtBottom || _messageProvider.hasAfter) &&
+        topLevelMessages.isNotEmpty;
+    _scrollRetentionState.updateShouldRetain(shouldRetain);
   }
 
   void _handleChannelChange() {
-    final channel = _channelProvider.selectedChannel;
-    final messageId = _channelProvider.selectedMessageId;
-    final authProvider = context.read<AuthProvider>();
-
-    if (channel != null && authProvider.accessToken != null) {
-      if (messageId != null) {
-        _messageProvider.loadMessages(
-          channel.id,
-          around: messageId,
-        );
-      } else {
-        // If no messageId, just load the most recent messages
-        _messageProvider.loadMessages(channel.id);
-      }
+    final selectedMessageId = context.read<ChannelProvider>().selectedMessageId;
+    final selectedChannel = context.read<ChannelProvider>().selectedChannel;
+    // Load messages only when channel changes
+    if (selectedChannel != null && _lastLoadedChannelId != selectedChannel.id) {
+      _lastLoadedChannelId = selectedChannel.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final authProvider = context.read<AuthProvider>();
+        if (authProvider.accessToken != null) {
+          if (selectedMessageId != null) {
+            _messageProvider.loadMessages(
+              selectedChannel.id,
+              around: selectedMessageId,
+            );
+          } else {
+            _messageProvider.loadMessages(selectedChannel.id);
+          }
+        }
+      });
     }
   }
 
@@ -65,6 +85,10 @@ class _ChatAreaState extends State<ChatArea> {
     final topLevelMessages =
         _messageProvider.messages.where((m) => m.parentId == null).toList();
 
+    // Update scroll retention state
+    _isAtBottom = _checkIfAtBottom();
+    _updateScrollRetention();
+
     // Reset the inactivity timer
     _scrollInactivityTimer?.cancel();
     _scrollInactivityTimer = Timer(_scrollInactivityDuration, () {
@@ -76,23 +100,18 @@ class _ChatAreaState extends State<ChatArea> {
         !_messageProvider.isLoading) {
       // Load older messages when scrolling near bottom
       final lastIndex = positions.last.index;
-      debugPrint(
-          '📜 Scroll - Last visible index: $lastIndex, Total messages: ${topLevelMessages.length}');
-      debugPrint(
-          '📜 hasBefore: ${_messageProvider.hasBefore}, hasAfter: ${_messageProvider.hasAfter}');
-      debugPrint(
-          '📜 Visible positions: ${positions.map((p) => '${p.index} (${p.itemLeadingEdge.toStringAsFixed(2)}-${p.itemTrailingEdge.toStringAsFixed(2)})').join(', ')}');
 
       if (_messageProvider.hasBefore &&
-          lastIndex >= topLevelMessages.length - 5) {
-        debugPrint('📜 Loading older messages (before)');
+          lastIndex >= topLevelMessages.length - 5 &&
+          _messageProvider.messages.length > 10) {
         _messageProvider.before();
       }
 
       // Load newer messages when scrolling near top
       final firstIndex = positions.first.index;
-      if (_messageProvider.hasAfter && firstIndex <= 5) {
-        debugPrint('📜 Loading newer messages (after)');
+      if (_messageProvider.hasAfter &&
+          firstIndex <= 5 &&
+          _messageProvider.messages.length > 10) {
         _messageProvider.after();
       }
     }
@@ -121,8 +140,22 @@ class _ChatAreaState extends State<ChatArea> {
     }
   }
 
+  bool _checkIfAtBottom() {
+    final positions = _itemPositionsListener.itemPositions.value;
+    if (positions.isEmpty) return true;
+
+    return positions.any((pos) {
+      if (pos.index == 0) {
+        debugPrint('Item 0 leading edge: ${pos.itemLeadingEdge}');
+        return pos.itemLeadingEdge >= 0;
+      }
+      return false;
+    });
+  }
+
   @override
   void dispose() {
+    _channelProvider.removeListener(_handleChannelChange);
     _messageController.dispose();
     _scrollInactivityTimer?.cancel();
     super.dispose();
@@ -134,7 +167,6 @@ class _ChatAreaState extends State<ChatArea> {
   ) async {
     if (text.trim().isEmpty && attachments.isEmpty) return false;
 
-    _isSubmittingMessage = true;
     _messageController.clear();
 
     final authProvider = context.read<AuthProvider>();
@@ -147,7 +179,6 @@ class _ChatAreaState extends State<ChatArea> {
           backgroundColor: Colors.red,
         ),
       );
-      _isSubmittingMessage = false;
       return false;
     }
 
@@ -158,7 +189,6 @@ class _ChatAreaState extends State<ChatArea> {
           backgroundColor: Colors.red,
         ),
       );
-      _isSubmittingMessage = false;
       return false;
     }
 
@@ -167,8 +197,6 @@ class _ChatAreaState extends State<ChatArea> {
       text,
       attachments: attachments,
     );
-
-    _isSubmittingMessage = false;
 
     if (message == null && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -207,32 +235,11 @@ class _ChatAreaState extends State<ChatArea> {
         context.watch<WorkspaceProvider>().selectedWorkspace;
     final currentUser = context.watch<AuthProvider>().currentUser;
     final messages = context.watch<MessageProvider>().messages;
+    final selectedChannel = context.watch<ChannelProvider>().selectedChannel;
 
     // Use Consumer for ChannelProvider to ensure we get the latest state
     return Consumer<ChannelProvider>(
       builder: (context, channelProvider, _) {
-        final selectedChannel = channelProvider.selectedChannel;
-        final selectedMessageId = channelProvider.selectedMessageId;
-
-        // Load messages only when channel changes
-        if (selectedChannel != null &&
-            _lastLoadedChannelId != selectedChannel.id) {
-          _lastLoadedChannelId = selectedChannel.id;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            final authProvider = context.read<AuthProvider>();
-            if (authProvider.accessToken != null) {
-              if (selectedMessageId != null) {
-                _messageProvider.loadMessages(
-                  selectedChannel.id,
-                  around: selectedMessageId,
-                );
-              } else {
-                _messageProvider.loadMessages(selectedChannel.id);
-              }
-            }
-          });
-        }
-
         if (selectedWorkspace == null) {
           return const Center(
             child: Column(
@@ -308,6 +315,7 @@ class _ChatAreaState extends State<ChatArea> {
                         return ScrollablePositionedList.builder(
                           itemScrollController: _itemScrollController,
                           itemPositionsListener: _itemPositionsListener,
+                          physics: PositionRetainedScrollPhysics(),
                           reverse: true,
                           padding: const EdgeInsets.all(8.0),
                           itemCount: topLevelMessages.length +

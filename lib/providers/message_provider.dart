@@ -154,8 +154,8 @@ class MessageProvider extends ChangeNotifier {
             channelId.toLowerCase() == _currentChannelId!.toLowerCase()) {
           final newMessage = Message.fromJson(transformedData);
 
-          // Check for duplicates before adding
-          if (!_messages.any((m) => m.id == newMessage.id)) {
+          // Check for duplicates or if there are unloaded messages before adding
+          if (!_messages.any((m) => m.id == newMessage.id) || _hasAfter) {
             _messages.insert(0, newMessage);
             notifyListeners();
           }
@@ -221,15 +221,16 @@ class MessageProvider extends ChangeNotifier {
         final newMessages = data.map((m) => Message.fromJson(m)).toList();
 
         if (after != null) {
-          _messages.addAll(newMessages);
+          _messages.insertAll(0, newMessages);
           _hasAfter = newMessages.length == limit;
         } else if (before != null) {
-          _messages.insertAll(0, newMessages);
+          _messages.addAll(newMessages);
           _hasBefore = newMessages.length == limit;
         } else {
+          //since there could be an imbalance in the number of messages around a message, we can't assume whether or now there are more messages before or after
           _messages = newMessages;
-          _hasBefore = newMessages.length == limit;
-          _hasAfter = newMessages.length == limit;
+          _hasBefore = true;
+          _hasAfter = true;
         }
       } else {
         final errorData = json.decode(response.body);
@@ -249,7 +250,7 @@ class MessageProvider extends ChangeNotifier {
     }
     await loadMessages(
       _currentChannelId!,
-      before: _messages.first.id,
+      before: _messages.last.id,
     );
   }
 
@@ -259,7 +260,7 @@ class MessageProvider extends ChangeNotifier {
     }
     await loadMessages(
       _currentChannelId!,
-      after: _messages.last.id,
+      after: _messages.first.id,
     );
   }
 

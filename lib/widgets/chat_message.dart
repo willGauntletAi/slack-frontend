@@ -56,13 +56,14 @@ class _ChatMessageState extends State<ChatMessage>
   bool _isHovering = false;
   bool _isMessageHovered = false; // separate state for background color
   final _overlayWidth = 200.0; // increased width to accommodate both options
-  late final _presenceProvider = context.read<PresenceProvider>();
+  late final PresenceProvider _presenceProvider;
   late final AnimationController _animationController;
   late final Animation<double> _fontSizeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _presenceProvider = context.read<PresenceProvider>();
     // Start tracking this user's presence when the widget is created
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -96,10 +97,8 @@ class _ChatMessageState extends State<ChatMessage>
     if (_messageId == _activeMessageId) {
       _removeGlobalOverlay();
     }
-    // Schedule presence tracking cleanup for the next frame
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _presenceProvider.stopTrackingUser(widget.userId);
-    });
+    // Directly stop tracking the user instead of scheduling it
+    _presenceProvider.stopTrackingUser(widget.userId);
     _animationController.dispose();
     super.dispose();
   }
@@ -114,7 +113,7 @@ class _ChatMessageState extends State<ChatMessage>
 
   void _showOverlay(BuildContext context) {
     // Only show reply overlay if message is repliable
-    if (!widget.repliable) return;
+    if (!widget.repliable || !mounted) return;
 
     // Always clean up previous overlay
     _removeGlobalOverlay();
@@ -130,8 +129,8 @@ class _ChatMessageState extends State<ChatMessage>
           offset: Offset(-1 * _overlayWidth, -20),
           child: MouseRegion(
             onEnter: (_) {
-              // Only handle enter if this is still the active message
-              if (_messageId == _activeMessageId) {
+              // Only handle enter if this is still the active message and widget is mounted
+              if (_messageId == _activeMessageId && mounted) {
                 setState(() {
                   _isHovering = true;
                   _isMessageHovered = true;
@@ -474,6 +473,7 @@ class _ChatMessageState extends State<ChatMessage>
     if (kIsWeb) {
       return MouseRegion(
         onEnter: (_) {
+          if (!mounted) return;
           setState(() {
             _isHovering = true;
             _isMessageHovered = true;
@@ -483,6 +483,7 @@ class _ChatMessageState extends State<ChatMessage>
           }
         },
         onExit: (_) {
+          if (!mounted) return;
           setState(() {
             _isHovering = false;
             _isMessageHovered = false;
@@ -495,6 +496,7 @@ class _ChatMessageState extends State<ChatMessage>
           });
         },
         onHover: (_) {
+          if (!mounted) return;
           if (!_isMessageHovered) {
             setState(() => _isMessageHovered = true);
           }
