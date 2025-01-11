@@ -16,6 +16,7 @@ class WebSocketService {
   bool _isConnected = false;
   Completer<void>? _connectionCompleter;
   Timer? _connectionTimeout;
+  StreamSubscription? _channelSubscription;
 
   Stream<Map<String, dynamic>> get messageStream => _messageController.stream;
   bool get isConnected => _isConnected;
@@ -28,6 +29,9 @@ class WebSocketService {
           '🔌 WebSocket: Already connected, skipping connection attempt');
       return;
     }
+
+    // Clean up any existing connection
+    await _cleanupConnection();
 
     _connectionCompleter = Completer<void>();
     final wsUrl = Uri.parse('${ApiConfig.wsUrl}?token=$token');
@@ -50,7 +54,7 @@ class WebSocketService {
       });
 
       // Set up message listener
-      _channel?.stream.listen(
+      _channelSubscription = _channel?.stream.listen(
         (message) {
           final data = jsonDecode(message);
 
@@ -90,6 +94,16 @@ class WebSocketService {
     }
   }
 
+  Future<void> _cleanupConnection() async {
+    _channelSubscription?.cancel();
+    _channelSubscription = null;
+    _connectionTimeout?.cancel();
+    _connectionTimeout = null;
+    await _channel?.sink.close();
+    _channel = null;
+    _isConnected = false;
+  }
+
   void _handleDisconnect(String reason) {
     debugPrint('🔌 WebSocket: Disconnecting. Reason: $reason');
     _isConnected = false;
@@ -98,15 +112,16 @@ class WebSocketService {
       _connectionCompleter?.completeError(reason);
     }
     _connectionCompleter = null;
-    _channel?.sink.close();
-    _channel = null;
+    _cleanupConnection();
 
     // Emit connection closed event
-    _messageController.add({
-      'type': 'connection_closed',
-      'reason': reason,
-      'timestamp': DateTime.now().toIso8601String(),
-    });
+    if (!_messageController.isClosed) {
+      _messageController.add({
+        'type': 'connection_closed',
+        'reason': reason,
+        'timestamp': DateTime.now().toIso8601String(),
+      });
+    }
   }
 
   void sendTypingIndicator(String channelId, bool isDm) {
@@ -171,9 +186,13 @@ class WebSocketService {
     }
   }
 
+  void disconnect() {
+    _handleDisconnect('Disconnected by user');
+  }
+
   void dispose() {
-    _connectionTimeout?.cancel();
-    _handleDisconnect('Service disposed');
-    _messageController.close();
+    _cleanupConnection();
+    // We don't close the message controller since this is a singleton
+    // and the controller needs to be reused for future connections
   }
 }

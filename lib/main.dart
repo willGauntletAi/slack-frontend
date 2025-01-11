@@ -24,13 +24,16 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => AuthProvider(authService),
+          create: (context) => WebSocketProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => AuthProvider(
+            authService: authService,
+            wsProvider: context.read<WebSocketProvider>(),
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => WorkspaceProvider(),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => WebSocketProvider(),
         ),
         ChangeNotifierProvider(
           create: (context) => ChannelProvider(
@@ -94,8 +97,6 @@ class AuthWrapper extends StatefulWidget {
 }
 
 class _AuthWrapperState extends State<AuthWrapper> {
-  bool _hasAttemptedConnection = false;
-
   @override
   void initState() {
     super.initState();
@@ -106,21 +107,6 @@ class _AuthWrapperState extends State<AuthWrapper> {
     if (!mounted) return;
     final authProvider = context.read<AuthProvider>();
     await authProvider.initialize();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final authProvider = context.watch<AuthProvider>();
-    final wsProvider = context.read<WebSocketProvider>();
-
-    // Only attempt to connect once when authenticated
-    if (!_hasAttemptedConnection &&
-        authProvider.isAuthenticated &&
-        authProvider.accessToken != null) {
-      _hasAttemptedConnection = true;
-      wsProvider.connect(authProvider.accessToken!);
-    }
   }
 
   @override
