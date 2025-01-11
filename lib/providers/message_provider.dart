@@ -160,6 +160,74 @@ class MessageProvider extends ChangeNotifier {
             notifyListeners();
           }
         }
+      } else if (data['type'] == 'reaction') {
+        final channelId = data['channelId'] as String;
+        final messageId = data['messageId'] as String;
+
+        // Only handle reactions for the current channel
+        if (_currentChannelId != null &&
+            channelId.toLowerCase() == _currentChannelId!.toLowerCase()) {
+          // Find the message and add the reaction
+          final messageIndex = _messages.indexWhere((m) => m.id == messageId);
+          if (messageIndex != -1) {
+            final reaction = MessageReaction(
+              id: data['id'],
+              emoji: data['emoji'],
+              messageId: messageId,
+              userId: data['userId'],
+              username: data['username'],
+            );
+
+            // Create a new message with the updated reactions
+            final updatedMessage = Message(
+              id: _messages[messageIndex].id,
+              content: _messages[messageIndex].content,
+              parentId: _messages[messageIndex].parentId,
+              createdAt: _messages[messageIndex].createdAt,
+              updatedAt: _messages[messageIndex].updatedAt,
+              userId: _messages[messageIndex].userId,
+              username: _messages[messageIndex].username,
+              channelId: _messages[messageIndex].channelId,
+              reactions: [..._messages[messageIndex].reactions, reaction],
+              attachments: _messages[messageIndex].attachments,
+            );
+
+            _messages[messageIndex] = updatedMessage;
+            notifyListeners();
+          }
+        }
+      } else if (data['type'] == 'delete_reaction') {
+        final channelId = data['channelId'] as String;
+        final messageId = data['messageId'] as String;
+        final reactionId = data['reactionId'] as String;
+
+        // Only handle reaction deletions for the current channel
+        if (_currentChannelId != null &&
+            channelId.toLowerCase() == _currentChannelId!.toLowerCase()) {
+          // Find the message and remove the reaction
+          final messageIndex = _messages.indexWhere((m) => m.id == messageId);
+          if (messageIndex != -1) {
+            // Create a new message with the updated reactions
+            final updatedMessage = Message(
+              id: _messages[messageIndex].id,
+              content: _messages[messageIndex].content,
+              parentId: _messages[messageIndex].parentId,
+              createdAt: _messages[messageIndex].createdAt,
+              updatedAt: _messages[messageIndex].updatedAt,
+              userId: _messages[messageIndex].userId,
+              username: _messages[messageIndex].username,
+              channelId: _messages[messageIndex].channelId,
+              reactions: _messages[messageIndex]
+                  .reactions
+                  .where((r) => r.id != reactionId)
+                  .toList(),
+              attachments: _messages[messageIndex].attachments,
+            );
+
+            _messages[messageIndex] = updatedMessage;
+            notifyListeners();
+          }
+        }
       }
     });
   }
