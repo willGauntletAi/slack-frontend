@@ -406,6 +406,9 @@
           "updated_at": {
             "type": "string"
           },
+          "lastUpdated": {
+            "type": "string"
+          },
           "usernames": {
             "type": "array",
             "items": {
@@ -419,6 +422,7 @@
           "is_private",
           "created_at",
           "updated_at",
+          "lastUpdated",
           "usernames"
         ]
       },
@@ -443,6 +447,9 @@
             "updated_at": {
               "type": "string"
             },
+            "lastUpdated": {
+              "type": "string"
+            },
             "usernames": {
               "type": "array",
               "items": {
@@ -463,6 +470,7 @@
             "is_private",
             "created_at",
             "updated_at",
+            "lastUpdated",
             "usernames",
             "unread_count",
             "last_read_message"
@@ -488,6 +496,9 @@
               "type": "string"
             },
             "updated_at": {
+              "type": "string"
+            },
+            "lastUpdated": {
               "type": "string"
             },
             "workspace_id": {
@@ -516,6 +527,7 @@
             "is_private",
             "created_at",
             "updated_at",
+            "lastUpdated",
             "workspace_id",
             "workspace_name",
             "usernames",
@@ -543,6 +555,9 @@
           "updated_at": {
             "type": "string"
           },
+          "lastUpdated": {
+            "type": "string"
+          },
           "usernames": {
             "type": "array",
             "items": {
@@ -556,6 +571,7 @@
           "is_private",
           "created_at",
           "updated_at",
+          "lastUpdated",
           "usernames"
         ]
       },

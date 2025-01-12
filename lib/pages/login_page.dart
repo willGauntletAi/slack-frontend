@@ -32,8 +32,6 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      debugPrint('🔐 Login: Attempting login...');
-
       final response = await http.post(
         Uri.parse(ApiConfig.loginUrl),
         headers: {'Content-Type': 'application/json'},
@@ -50,7 +48,6 @@ class _LoginPageState extends State<LoginPage> {
         if (data['accessToken'] == null ||
             data['refreshToken'] == null ||
             data['user'] == null) {
-          debugPrint('❌ Login: Invalid response structure');
           throw FormatException('Invalid response format from server');
         }
 
@@ -59,11 +56,9 @@ class _LoginPageState extends State<LoginPage> {
         if (user['id'] == null ||
             user['username'] == null ||
             user['email'] == null) {
-          debugPrint('❌ Login: Invalid user object structure');
           throw FormatException('Invalid user format from server');
         }
 
-        debugPrint('✅ Login: Successful');
         if (mounted) {
           await context.read<AuthProvider>().setTokens(
                 accessToken: data['accessToken'],
@@ -77,16 +72,11 @@ class _LoginPageState extends State<LoginPage> {
         }
       } else {
         final error = json.decode(response.body);
-        debugPrint('❌ Login: Failed - ${error['error']}');
         setState(() {
           _errorMessage = error['error'] ?? 'Login failed';
         });
       }
     } catch (e, stackTrace) {
-      debugPrint('❌ Login: Error - $e');
-      if (e is! FormatException) {
-        debugPrint('Stack trace: $stackTrace');
-      }
       setState(() {
         if (e is FormatException) {
           _errorMessage = e.message;

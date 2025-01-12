@@ -159,7 +159,6 @@ class _HomePageState extends State<HomePage> {
           TextButton(
             onPressed: () async {
               final name = nameController.text.trim();
-              debugPrint('Creating channel with name: $name');
               if (name.isNotEmpty) {
                 final authProvider = context.read<AuthProvider>();
                 final workspaceProvider = context.read<WorkspaceProvider>();

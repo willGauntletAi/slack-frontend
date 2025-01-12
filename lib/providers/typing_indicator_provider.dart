@@ -18,7 +18,6 @@ class TypingIndicatorProvider with ChangeNotifier {
 
   void _setupWebSocketListener() {
     _wsSubscription = _wsProvider.messageStream.listen((data) {
-      debugPrint('typing message received: $data');
       if (data['type'] == 'typing') {
         userStartedTyping(
           data['channelId'],
@@ -46,8 +45,6 @@ class TypingIndicatorProvider with ChangeNotifier {
             now.difference(entry.value.$2) < _typingTimeout)
         .map((entry) => entry.value.$1)
         .toList();
-    debugPrint('typingInChannel: $typingInChannel');
-    debugPrint('result: $result');
     return result;
   }
 

@@ -68,25 +68,18 @@ class AuthProvider with ChangeNotifier {
     }
 
     try {
-      debugPrint('🔑 Auth: Checking auth status...');
       final refreshToken = await _authService.getRefreshToken();
       final userData = await _authService.getUserData();
-      debugPrint(
-          '🔑 Auth: Found refresh token: ${refreshToken != null}, user data: ${userData != null}');
 
       if (refreshToken != null && userData != null) {
         _currentUser = User.fromJson(userData);
         await _refreshAccessToken(refreshToken);
-        debugPrint(
-            '🔑 Auth: Refresh successful - isAuthenticated: $_isAuthenticated');
       } else {
         _isAuthenticated = false;
         _accessToken = null;
         _currentUser = null;
-        debugPrint('🔑 Auth: No stored credentials found');
       }
     } catch (e) {
-      debugPrint('❌ Auth: Error checking auth status - $e');
       _isAuthenticated = false;
       _accessToken = null;
       _currentUser = null;
@@ -111,8 +104,6 @@ class AuthProvider with ChangeNotifier {
     required String refreshToken,
     required Map<String, dynamic> userData,
   }) async {
-    debugPrint('🔑 Auth: Setting tokens and user data');
-
     try {
       await _authService.saveRefreshToken(refreshToken);
       await _authService.saveUserData(userData);
@@ -120,12 +111,8 @@ class AuthProvider with ChangeNotifier {
       _currentUser = User.fromJson(userData);
       _isAuthenticated = true;
       await _wsProvider.connect(accessToken);
-      debugPrint('✅ Auth: Successfully set tokens and user data');
     } catch (e, stackTrace) {
-      debugPrint('❌ Auth: Error setting tokens - $e');
-      if (e is! FormatException) {
-        debugPrint('Stack trace: $stackTrace');
-      }
+      if (e is! FormatException) {}
       rethrow;
     }
     notifyListeners();

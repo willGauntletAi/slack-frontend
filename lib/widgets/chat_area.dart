@@ -146,7 +146,6 @@ class _ChatAreaState extends State<ChatArea> {
 
     return positions.any((pos) {
       if (pos.index == 0) {
-        debugPrint('Item 0 leading edge: ${pos.itemLeadingEdge}');
         return pos.itemLeadingEdge >= 0;
       }
       return false;

@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show debugPrint;
 import 'build_config.dart';
 
 class ApiConfig {
@@ -29,7 +28,6 @@ class ApiConfig {
   static String get wsUrl {
     final httpUrl = baseUrl;
     final wsUrl = '${httpUrl.replaceFirst('http', 'ws')}/ws';
-    debugPrint('Constructed WebSocket URL: $wsUrl');
     return wsUrl;
   }
 

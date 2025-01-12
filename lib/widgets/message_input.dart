@@ -109,7 +109,6 @@ class _MessageInputState extends State<MessageInput> {
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
     } catch (e) {
-      debugPrint('Error getting upload URL: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -192,7 +191,6 @@ class _MessageInputState extends State<MessageInput> {
 
           await _uploadFile(file, uploadUrl, fileKey);
         } catch (e) {
-          debugPrint('Error uploading file: $e');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -204,7 +202,6 @@ class _MessageInputState extends State<MessageInput> {
         }
       }
     } catch (e) {
-      debugPrint('Error picking files: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -327,9 +327,7 @@ class _ChatMessageState extends State<ChatMessage>
         final data = jsonDecode(response.body);
         return data['url'] as String;
       }
-    } catch (e) {
-      debugPrint('Error getting download URL: $e');
-    }
+    } catch (e) {}
     return null;
   }
 
@@ -347,11 +345,8 @@ class _ChatMessageState extends State<ChatMessage>
             onTap: () async {
               final downloadUrl = await _getDownloadUrl(attachment.fileKey);
               if (downloadUrl != null && kIsWeb) {
-                // For web, open in a new tab
                 html.window.open(downloadUrl, '_blank');
               } else if (downloadUrl != null) {
-                // For mobile, launch URL (you'd need url_launcher package)
-                debugPrint('Download URL: $downloadUrl');
               } else if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

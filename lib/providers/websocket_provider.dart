@@ -8,7 +8,7 @@ class WebSocketProvider with ChangeNotifier {
   bool get isConnected => _webSocketService?.isConnected ?? false;
 
   WebSocketProvider() {
-    debugPrint('🔌 WebSocketProvider: Initializing');
+    // Constructor now empty after removing debugPrint
   }
 
   void _setupMessageListener() {
@@ -21,10 +21,8 @@ class WebSocketProvider with ChangeNotifier {
 
   void _handleWebSocketMessage(Map<String, dynamic> data) {
     if (data['type'] == null) {
-      debugPrint('🔌 WebSocketProvider: Message received without type: $data');
       return;
     }
-    debugPrint('🔌 WebSocketProvider: Message received: ${data['type']}');
 
     // Only handle connection state changes here
     switch (data['type']) {
@@ -43,7 +41,6 @@ class WebSocketProvider with ChangeNotifier {
   }
 
   Future<void> connect(String token) async {
-    debugPrint('🔌 WebSocketProvider: Connect requested');
     // Create new service instance if needed
     _webSocketService ??= WebSocketService();
     _setupMessageListener();
@@ -67,7 +64,6 @@ class WebSocketProvider with ChangeNotifier {
   }
 
   void disconnect() {
-    debugPrint('🔌 WebSocketProvider: Disconnecting');
     _messageSubscription?.cancel();
     _messageSubscription = null;
     _webSocketService?.disconnect();
@@ -75,7 +71,6 @@ class WebSocketProvider with ChangeNotifier {
 
   @override
   void dispose() {
-    debugPrint('🔌 WebSocketProvider: Disposing');
     disconnect();
     super.dispose();
   }

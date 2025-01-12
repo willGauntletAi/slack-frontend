@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/html.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../config/api_config.dart';
 
 class WebSocketService {
@@ -22,11 +22,7 @@ class WebSocketService {
   bool get isConnected => _isConnected;
 
   Future<void> connect(String token) async {
-    debugPrint(
-        '🔌 WebSocket: Connection attempt. Current state: connected=$_isConnected');
     if (_isConnected) {
-      debugPrint(
-          '🔌 WebSocket: Already connected, skipping connection attempt');
       return;
     }
 
@@ -35,7 +31,6 @@ class WebSocketService {
 
     _connectionCompleter = Completer<void>();
     final wsUrl = Uri.parse('${ApiConfig.wsUrl}?token=$token');
-    debugPrint('🔌 WebSocket: Connecting to $wsUrl');
 
     try {
       // Create the WebSocket channel
@@ -59,7 +54,6 @@ class WebSocketService {
           final data = jsonDecode(message);
 
           if (data['type'] == 'connected' && !_isConnected) {
-            debugPrint('🔌 WebSocket: Connection successful');
             _isConnected = true;
             _connectionTimeout?.cancel();
             if (!(_connectionCompleter?.isCompleted ?? true)) {
@@ -105,7 +99,6 @@ class WebSocketService {
   }
 
   void _handleDisconnect(String reason) {
-    debugPrint('🔌 WebSocket: Disconnecting. Reason: $reason');
     _isConnected = false;
     _connectionTimeout?.cancel();
     if (_connectionCompleter?.isCompleted == false) {
@@ -125,7 +118,6 @@ class WebSocketService {
   }
 
   void sendTypingIndicator(String channelId, bool isDm) {
-    debugPrint('Sending typing indicator for channel: $channelId, isDm: $isDm');
     if (!_isConnected) return;
 
     final message = {
@@ -141,7 +133,6 @@ class WebSocketService {
   }
 
   void sendPresenceSubscribe(String userId) {
-    debugPrint('Subscribing to presence for user: $userId');
     if (!_isConnected) return;
 
     final message = {
@@ -156,7 +147,6 @@ class WebSocketService {
   }
 
   void sendPresenceUnsubscribe(String userId) {
-    debugPrint('Unsubscribing from presence for user: $userId');
     if (!_isConnected) return;
 
     final message = {
@@ -171,7 +161,6 @@ class WebSocketService {
   }
 
   void sendMarkRead(String channelId, String messageId) {
-    debugPrint('Marking message $messageId as read in channel: $channelId');
     if (!_isConnected) return;
 
     final message = {
