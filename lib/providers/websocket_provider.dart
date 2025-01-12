@@ -71,7 +71,8 @@ class WebSocketProvider with ChangeNotifier {
 
   @override
   void dispose() {
-    disconnect();
+    _messageSubscription?.cancel();
+    _webSocketService?.dispose();
     super.dispose();
   }
 }

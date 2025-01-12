@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import 'auth_provider.dart';
 import 'websocket_provider.dart';
+import 'channel_provider.dart';
 
 class Message {
   final String id;
@@ -105,6 +106,7 @@ class MessageAttachment {
 class MessageProvider extends ChangeNotifier {
   final AuthProvider _authProvider;
   final WebSocketProvider _wsProvider;
+  final ChannelProvider _channelProvider;
   List<Message> _messages = [];
   bool _isLoading = false;
   bool _hasBefore = true;
@@ -116,8 +118,10 @@ class MessageProvider extends ChangeNotifier {
   MessageProvider({
     required AuthProvider authProvider,
     required WebSocketProvider wsProvider,
+    required ChannelProvider channelProvider,
   })  : _authProvider = authProvider,
-        _wsProvider = wsProvider {
+        _wsProvider = wsProvider,
+        _channelProvider = channelProvider {
     _setupWebSocketListener();
   }
 
@@ -334,6 +338,7 @@ class MessageProvider extends ChangeNotifier {
 
   void markMessageAsRead(String channelId, String messageId) {
     _wsProvider.sendMarkRead(channelId, messageId);
+    _channelProvider.handleMessageRead(channelId, messageId);
   }
 
   Future<Message?> sendMessage(

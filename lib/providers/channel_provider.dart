@@ -14,6 +14,7 @@ class Channel {
   final List<String> usernames;
   final int unreadCount;
   final String? lastReadMessage;
+  final DateTime lastUpdated;
 
   Channel({
     required this.id,
@@ -24,6 +25,7 @@ class Channel {
     required this.usernames,
     required this.unreadCount,
     this.lastReadMessage,
+    required this.lastUpdated,
   });
 
   factory Channel.fromJson(Map<String, dynamic> json) {
@@ -42,6 +44,7 @@ class Channel {
           [],
       unreadCount: json['unread_count'] ?? 0,
       lastReadMessage: json['last_read_message'],
+      lastUpdated: DateTime.parse(json['lastUpdated'] ?? json['updated_at']),
     );
   }
 
@@ -57,6 +60,7 @@ class Channel {
           .toList(),
       unreadCount: 0, // New channels from websocket start with 0 unread
       lastReadMessage: null,
+      lastUpdated: DateTime.parse(json['lastUpdated'] ?? json['updated_at']),
     );
   }
 }
@@ -75,8 +79,22 @@ class ChannelProvider extends ChangeNotifier {
     _setupWebSocketListener();
   }
 
+  void _sortChannels() {
+    _channels.sort((a, b) {
+      // First sort by unread count
+      if (a.unreadCount > 0 && b.unreadCount == 0) return -1;
+      if (a.unreadCount == 0 && b.unreadCount > 0) return 1;
+
+      // Then by last updated time
+      return b.lastUpdated.compareTo(a.lastUpdated);
+    });
+  }
+
   void _setupWebSocketListener() {
+    Set<String> processedMessageIds = {};
+    debugPrint('Setting up WebSocket listener');
     _wsSubscription = _wsProvider.messageStream.listen((data) {
+      debugPrint('WebSocket message received: ${data['type']}');
       if (data['type'] == 'channel_join') {
         try {
           final channelData = data['channel'] as Map<String, dynamic>;
@@ -86,24 +104,34 @@ class ChannelProvider extends ChangeNotifier {
           final existingIndex =
               _channels.indexWhere((c) => c.id == newChannel.id);
           if (existingIndex != -1) {
-            // Update existing channel
             _channels[existingIndex] = newChannel;
           } else {
-            // Add new channel to the beginning of the list
-            _channels.insert(0, newChannel);
+            _channels.add(newChannel);
           }
+          _sortChannels();
           notifyListeners();
         } catch (e) {
-          debugPrint('Error processing channel join: $e');
+          // Error handling preserved without debug print
         }
       } else if (data['type'] == 'new_message') {
         try {
+          debugPrint('Processing new_message event');
+          final messageData = data['message'] as Map<String, dynamic>;
+          final messageId = messageData['id'].toString();
           final channelId = data['channelId'] as String;
+
+          if (processedMessageIds.contains(messageId)) {
+            debugPrint('Message already processed: $messageId');
+            return;
+          }
+          processedMessageIds.add(messageId);
+
           final channelIndex = _channels.indexWhere((c) => c.id == channelId);
 
-          // Only increment unread count if the channel exists and is not currently selected
-          if (channelIndex != -1 && _selectedChannel?.id != channelId) {
+          if (channelIndex != -1) {
             final channel = _channels[channelIndex];
+            final isSelected = _selectedChannel?.id == channelId;
+
             final updatedChannel = Channel(
               id: channel.id,
               name: channel.name,
@@ -111,14 +139,20 @@ class ChannelProvider extends ChangeNotifier {
               createdAt: channel.createdAt,
               updatedAt: channel.updatedAt,
               usernames: channel.usernames,
-              unreadCount: channel.unreadCount + 1,
+              unreadCount:
+                  isSelected ? channel.unreadCount : channel.unreadCount + 1,
               lastReadMessage: channel.lastReadMessage,
+              lastUpdated: DateTime.now(),
             );
+
             _channels[channelIndex] = updatedChannel;
+            _sortChannels();
             notifyListeners();
+          } else {
+            debugPrint('Channel not found: $channelId');
           }
         } catch (e) {
-          debugPrint('Error processing new message: $e');
+          debugPrint('Error processing new_message: $e'); // Debug log
         }
       }
     });
@@ -139,20 +173,6 @@ class ChannelProvider extends ChangeNotifier {
   void selectChannel(Channel? channel, {String? messageId}) {
     if (_selectedChannel?.id != channel?.id ||
         _selectedMessageId != messageId) {
-      if (channel != null) {
-        // Reset unread count when selecting a channel
-        final updatedChannel = Channel(
-          id: channel.id,
-          name: channel.name,
-          isPrivate: channel.isPrivate,
-          createdAt: channel.createdAt,
-          updatedAt: channel.updatedAt,
-          usernames: channel.usernames,
-          unreadCount: 0,
-          lastReadMessage: channel.lastReadMessage,
-        );
-        updateChannel(updatedChannel);
-      }
       _selectedChannel = channel;
       _selectedMessageId = messageId;
       notifyListeners();
@@ -178,13 +198,18 @@ class ChannelProvider extends ChangeNotifier {
         final List<dynamic> data = json.decode(response.body);
         _channels = data.map((json) => Channel.fromJson(json)).toList();
 
+        // Remove any duplicate channels by ID
+        final uniqueChannels = <String, Channel>{};
+        for (var channel in _channels) {
+          uniqueChannels[channel.id] = channel;
+        }
+        _channels = uniqueChannels.values.toList();
+
+        _sortChannels();
+
         // Select the first channel by default if none is selected
-        if (_channels.isNotEmpty) {
-          // Always select first channel to ensure proper initialization
+        if (_channels.isNotEmpty && _selectedChannel == null) {
           selectChannel(_channels.first);
-        } else {
-          _selectedChannel = null;
-          notifyListeners();
         }
       } else {
         final error = json.decode(response.body);
@@ -216,23 +241,21 @@ class ChannelProvider extends ChangeNotifier {
       );
 
       if (response.statusCode == 201) {
-        debugPrint('Response body: ${response.body}');
         final data = json.decode(response.body);
         final newChannel = Channel.fromJson(data);
 
-        // Add new channel to the beginning of the list
-        _channels.insert(0, newChannel);
+        // Add new channel to the list
+        _channels.add(newChannel);
+        _sortChannels();
         notifyListeners();
 
         return newChannel;
       } else {
-        debugPrint('Response body: ${response.body}');
         final error = json.decode(response.body);
         _error = error['error'] ?? 'Failed to create channel';
         return null;
       }
     } catch (e) {
-      debugPrint('Error creating channel: $e');
       _error = 'Network error occurred';
       return null;
     }
@@ -240,7 +263,6 @@ class ChannelProvider extends ChangeNotifier {
 
   Future<bool> leaveChannel(
       String accessToken, String channelId, String userId) async {
-    debugPrint('leaveChannel: $userId');
     try {
       final response = await http.delete(
         Uri.parse('${ApiConfig.baseUrl}/channel/$channelId/member/$userId'),
@@ -249,7 +271,6 @@ class ChannelProvider extends ChangeNotifier {
           'Authorization': 'Bearer $accessToken',
         },
       );
-      debugPrint('Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         _channels.removeWhere((channel) => channel.id == channelId);
@@ -341,7 +362,26 @@ class ChannelProvider extends ChangeNotifier {
       if (_selectedChannel?.id == updatedChannel.id) {
         _selectedChannel = updatedChannel;
       }
+      _sortChannels();
       notifyListeners();
+    }
+  }
+
+  void handleMessageRead(String channelId, String messageId) {
+    final channel = _channels.firstWhere((c) => c.id == channelId);
+    if (channel.unreadCount > 0) {
+      final updatedChannel = Channel(
+        id: channel.id,
+        name: channel.name,
+        isPrivate: channel.isPrivate,
+        createdAt: channel.createdAt,
+        updatedAt: channel.updatedAt,
+        usernames: channel.usernames,
+        unreadCount: channel.unreadCount - 1,
+        lastReadMessage: messageId,
+        lastUpdated: channel.lastUpdated,
+      );
+      updateChannel(updatedChannel);
     }
   }
 
@@ -380,6 +420,7 @@ class ChannelProvider extends ChangeNotifier {
         usernames: [...channel.usernames],
         unreadCount: channel.unreadCount,
         lastReadMessage: channel.lastReadMessage,
+        lastUpdated: channel.lastUpdated,
       );
       updateChannel(selectedChannel);
       return true;
