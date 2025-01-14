@@ -321,6 +321,10 @@ class _ChatAreaState extends State<ChatArea> {
                               (messageProvider.isLoading ? 1 : 0),
                           initialScrollIndex: selectedMessageIndex,
                           itemBuilder: (context, index) {
+                            final lastReadMessageId = context
+                                .watch<ChannelProvider>()
+                                .selectedChannel
+                                ?.lastReadMessage;
                             if (messageProvider.isLoading &&
                                 index == topLevelMessages.length) {
                               return const Center(
@@ -329,6 +333,7 @@ class _ChatAreaState extends State<ChatArea> {
 
                             final message = topLevelMessages[index];
                             final isMe = message.userId == currentUser?.id;
+                            final isNewestMessage = index == 0;
 
                             return ChatMessage(
                               text: message.content,
@@ -363,8 +368,8 @@ class _ChatAreaState extends State<ChatArea> {
                               myReactions: _buildMyReactionsSet(
                                   message.reactions, currentUser?.id),
                               attachments: message.attachments,
-                              isLastRead:
-                                  selectedChannel.lastReadMessage == message.id,
+                              isLastRead: !isNewestMessage &&
+                                  lastReadMessageId == message.id,
                               isSelectedMessage: message.id ==
                                   channelProvider.selectedMessageId,
                             );

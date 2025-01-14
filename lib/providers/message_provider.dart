@@ -382,7 +382,12 @@ class MessageProvider extends ChangeNotifier {
 
       if (response.statusCode == 201) {
         final data = json.decode(response.body);
-        return Message.fromJson(data);
+        final message = Message.fromJson(data);
+        // Mark message as read immediately after sending
+        markMessageAsRead(channelId, message.id);
+        // Update channel's unread count and last read message
+        _channelProvider.handleMessageRead(channelId, message.id);
+        return message;
       } else {
         final errorData = json.decode(response.body);
         _error = errorData['error'] ?? 'Failed to send message';

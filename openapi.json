@@ -11,6 +11,40 @@
       "description": "Local development server"
     }
   ],
+  "tags": [
+    {
+      "name": "auth",
+      "description": "Authentication endpoints"
+    },
+    {
+      "name": "users",
+      "description": "User management endpoints"
+    },
+    {
+      "name": "workspaces",
+      "description": "Workspace management endpoints"
+    },
+    {
+      "name": "channels",
+      "description": "Channel management endpoints"
+    },
+    {
+      "name": "messages",
+      "description": "Message management endpoints"
+    },
+    {
+      "name": "files",
+      "description": "File management endpoints"
+    },
+    {
+      "name": "search",
+      "description": "Search endpoints"
+    },
+    {
+      "name": "embeddings",
+      "description": "Message embedding generation endpoints"
+    }
+  ],
   "components": {
     "securitySchemes": {
       "bearerAuth": {
@@ -3866,6 +3900,64 @@
           },
           "403": {
             "description": "Not authorized to access this workspace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/embeddings/all": {
+      "post": {
+        "tags": [
+          "embeddings"
+        ],
+        "summary": "Generate embeddings for all messages that don't have them",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully generated embeddings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "count": {
+                      "type": "number"
+                    },
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "count"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error generating embeddings",
             "content": {
               "application/json": {
                 "schema": {

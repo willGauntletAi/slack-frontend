@@ -92,9 +92,7 @@ class ChannelProvider extends ChangeNotifier {
 
   void _setupWebSocketListener() {
     Set<String> processedMessageIds = {};
-    debugPrint('Setting up WebSocket listener');
     _wsSubscription = _wsProvider.messageStream.listen((data) {
-      debugPrint('WebSocket message received: ${data['type']}');
       if (data['type'] == 'channel_join') {
         try {
           final channelData = data['channel'] as Map<String, dynamic>;
@@ -115,13 +113,11 @@ class ChannelProvider extends ChangeNotifier {
         }
       } else if (data['type'] == 'new_message') {
         try {
-          debugPrint('Processing new_message event');
           final messageData = data['message'] as Map<String, dynamic>;
           final messageId = messageData['id'].toString();
           final channelId = data['channelId'] as String;
 
           if (processedMessageIds.contains(messageId)) {
-            debugPrint('Message already processed: $messageId');
             return;
           }
           processedMessageIds.add(messageId);
@@ -148,8 +144,6 @@ class ChannelProvider extends ChangeNotifier {
             _channels[channelIndex] = updatedChannel;
             _sortChannels();
             notifyListeners();
-          } else {
-            debugPrint('Channel not found: $channelId');
           }
         } catch (e) {
           debugPrint('Error processing new_message: $e'); // Debug log
@@ -369,20 +363,19 @@ class ChannelProvider extends ChangeNotifier {
 
   void handleMessageRead(String channelId, String messageId) {
     final channel = _channels.firstWhere((c) => c.id == channelId);
-    if (channel.unreadCount > 0) {
-      final updatedChannel = Channel(
-        id: channel.id,
-        name: channel.name,
-        isPrivate: channel.isPrivate,
-        createdAt: channel.createdAt,
-        updatedAt: channel.updatedAt,
-        usernames: channel.usernames,
-        unreadCount: channel.unreadCount - 1,
-        lastReadMessage: messageId,
-        lastUpdated: channel.lastUpdated,
-      );
-      updateChannel(updatedChannel);
-    }
+    final updatedChannel = Channel(
+      id: channel.id,
+      name: channel.name,
+      isPrivate: channel.isPrivate,
+      createdAt: channel.createdAt,
+      updatedAt: channel.updatedAt,
+      usernames: channel.usernames,
+      //TODO: fix this. This only works if there is a single unread message. Otherwise, we might be marking several messages as read, but only decrementing the count by 1.
+      unreadCount: channel.unreadCount > 0 ? channel.unreadCount - 1 : 0,
+      lastReadMessage: messageId,
+      lastUpdated: channel.lastUpdated,
+    );
+    updateChannel(updatedChannel);
   }
 
   Future<bool> addChannelMembers(

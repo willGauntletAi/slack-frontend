@@ -439,20 +439,27 @@ class _ChatMessageState extends State<ChatMessage>
                       if (widget.isLastRead)
                         Padding(
                           padding: const EdgeInsets.only(top: 8.0),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8.0, vertical: 4.0),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'Last read',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Container(
+                                height: 1,
+                                color: Colors.grey[300],
                               ),
-                            ),
+                              Container(
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 8.0),
+                                color:
+                                    Theme.of(context).scaffoldBackgroundColor,
+                                child: const Text(
+                                  'Last read',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                     ],
