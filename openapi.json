@@ -978,6 +978,60 @@
           "nextId",
           "totalCount"
         ]
+      },
+      "AskAiResponse": {
+        "type": "object",
+        "properties": {
+          "answer": {
+            "type": "string"
+          },
+          "relevantMessages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "content": {
+                  "type": "string"
+                },
+                "userId": {
+                  "type": "string"
+                },
+                "username": {
+                  "type": "string"
+                },
+                "channelId": {
+                  "type": "string"
+                },
+                "createdAt": {
+                  "type": "string"
+                },
+                "updatedAt": {
+                  "type": "string"
+                },
+                "similarity": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "content",
+                "userId",
+                "username",
+                "channelId",
+                "createdAt",
+                "updatedAt",
+                "similarity"
+              ]
+            }
+          }
+        },
+        "required": [
+          "answer",
+          "relevantMessages"
+        ]
       }
     },
     "parameters": {}
@@ -2515,6 +2569,17 @@
             "bearerAuth": []
           }
         ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter channels by workspace ID"
+          }
+        ],
         "responses": {
           "200": {
             "description": "List of channels retrieved successfully",
@@ -3919,6 +3984,110 @@
         }
       }
     },
+    "/search/ask-ai": {
+      "get": {
+        "tags": [
+          "search"
+        ],
+        "summary": "Get AI-powered answers based on message history",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500
+            },
+            "description": "Question to ask the AI"
+          },
+          {
+            "name": "workspaceId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Workspace to search in"
+          },
+          {
+            "name": "channelId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Filter context to a specific channel"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 20,
+              "default": 5
+            },
+            "description": "Number of relevant messages to use as context"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AI response generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AskAiResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/embeddings/all": {
       "post": {
         "tags": [
@@ -3958,6 +4127,121 @@
           },
           "400": {
             "description": "Error generating embeddings",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/embeddings": {
+      "get": {
+        "tags": [
+          "embeddings"
+        ],
+        "summary": "Search messages using semantic embeddings",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1000
+            },
+            "description": "Text to find semantically similar messages to"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 10,
+              "default": 10
+            },
+            "description": "Number of results to return"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully found similar messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "content": {
+                            "type": "string"
+                          },
+                          "score": {
+                            "type": "number"
+                          },
+                          "channelId": {
+                            "type": "string"
+                          },
+                          "userId": {
+                            "type": "string"
+                          },
+                          "username": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "content",
+                          "score",
+                          "channelId",
+                          "userId",
+                          "username",
+                          "createdAt",
+                          "updatedAt"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "messages"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Error performing semantic search",
             "content": {
               "application/json": {
                 "schema": {

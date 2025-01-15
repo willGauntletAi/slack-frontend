@@ -11,6 +11,7 @@ import 'providers/typing_indicator_provider.dart';
 import 'providers/workspace_users_provider.dart';
 import 'providers/presence_provider.dart';
 import 'providers/search_provider.dart';
+import 'providers/ask_ai_provider.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
 import 'pages/home_page.dart';
@@ -62,6 +63,9 @@ void main() async {
         ),
         ChangeNotifierProvider(
           create: (_) => SearchProvider(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AskAiProvider(),
         ),
       ],
       child: const MainApp(),
