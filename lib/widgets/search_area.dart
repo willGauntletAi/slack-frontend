@@ -25,7 +25,7 @@ class _SearchAreaState extends State<SearchArea> {
   Timer? _aiDebounceTimer;
   bool _isDebouncingAi = false;
   static const _searchDebounceTime = Duration(milliseconds: 300);
-  static const _aiDebounceTime = Duration(seconds: 5);
+  static const _askAiDebounceTime = Duration(seconds: 5);
 
   @override
   void initState() {
@@ -64,7 +64,7 @@ class _SearchAreaState extends State<SearchArea> {
       _performSearch();
     });
 
-    _aiDebounceTimer = Timer(_aiDebounceTime, () {
+    _aiDebounceTimer = Timer(_askAiDebounceTime, () {
       setState(() {
         _isDebouncingAi = false;
       });
