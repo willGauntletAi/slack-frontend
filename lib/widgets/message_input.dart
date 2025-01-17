@@ -12,7 +12,8 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 
 class MessageInput extends StatefulWidget {
-  final Future<bool> Function(String, List<MessageAttachment>) onSubmitted;
+  final Future<bool> Function(String, List<MessageAttachment>,
+      {String? requestAvatar}) onSubmitted;
   final String hintText;
 
   const MessageInput({
@@ -34,6 +35,7 @@ class _MessageInputState extends State<MessageInput> {
   final List<MessageAttachment> _uploadedFiles = [];
   final Map<String, double> _uploadProgress = {};
   DateTime? _lastTypingIndicatorSent;
+  String? _selectedUserId;
   static const _typingThrottleDuration = Duration(milliseconds: 1000);
 
   @override
@@ -75,7 +77,8 @@ class _MessageInputState extends State<MessageInput> {
     final attachments = List<MessageAttachment>.from(_uploadedFiles);
     _uploadedFiles.clear();
 
-    final success = await widget.onSubmitted(text, attachments);
+    final success = await widget.onSubmitted(text, attachments,
+        requestAvatar: _selectedUserId);
 
     if (!success && mounted) {
       setState(() {
@@ -84,6 +87,9 @@ class _MessageInputState extends State<MessageInput> {
     } else {
       _messageController.clear();
       _focusNode.requestFocus();
+      setState(() {
+        _selectedUserId = null; // Reset the selected user after sending
+      });
     }
 
     setState(() {
@@ -245,6 +251,13 @@ class _MessageInputState extends State<MessageInput> {
 
   @override
   Widget build(BuildContext context) {
+    final channel = context.watch<ChannelProvider>().selectedChannel;
+    final currentUserId = context.watch<AuthProvider>().currentUser?.id;
+
+    // Filter out the current user from the members list
+    final otherMembers =
+        channel?.members.where((m) => m.id != currentUserId).toList() ?? [];
+
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
@@ -256,6 +269,42 @@ class _MessageInputState extends State<MessageInput> {
       ),
       child: Column(
         children: [
+          if (otherMembers.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Row(
+                children: [
+                  const Text(
+                    "Don't want to wait? Request an avatar to respond:",
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DropdownButton<String>(
+                      value: _selectedUserId,
+                      hint: const Text('Select a user'),
+                      isExpanded: true,
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: null,
+                          child: Text('No one'),
+                        ),
+                        ...otherMembers
+                            .map((member) => DropdownMenuItem<String>(
+                                  value: member.id,
+                                  child: Text(member.username),
+                                )),
+                      ],
+                      onChanged: (String? value) {
+                        setState(() {
+                          _selectedUserId = value;
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (_uploadedFiles.isNotEmpty || _uploadProgress.isNotEmpty)
             Container(
               padding: const EdgeInsets.all(8),

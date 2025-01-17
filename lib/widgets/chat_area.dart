@@ -162,8 +162,9 @@ class _ChatAreaState extends State<ChatArea> {
 
   Future<bool> _handleSubmitted(
     String text,
-    List<MessageAttachment> attachments,
-  ) async {
+    List<MessageAttachment> attachments, {
+    String? requestAvatar,
+  }) async {
     if (text.trim().isEmpty && attachments.isEmpty) return false;
 
     _messageController.clear();
@@ -195,6 +196,7 @@ class _ChatAreaState extends State<ChatArea> {
       channel.id,
       text,
       attachments: attachments,
+      requestAvatar: requestAvatar,
     );
 
     if (message == null && mounted) {

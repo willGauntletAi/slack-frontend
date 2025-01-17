@@ -34,8 +34,9 @@ class _ThreadPanelState extends State<ThreadPanel> {
 
   Future<bool> _handleSubmitted(
     String text,
-    List<MessageAttachment> attachments,
-  ) async {
+    List<MessageAttachment> attachments, {
+    String? requestAvatar,
+  }) async {
     if (text.trim().isEmpty && attachments.isEmpty) return false;
 
     _messageController.clear();
@@ -61,6 +62,7 @@ class _ThreadPanelState extends State<ThreadPanel> {
           text,
           parentId: parentId,
           attachments: attachments,
+          requestAvatar: requestAvatar,
         );
 
     if (message == null && mounted) {
