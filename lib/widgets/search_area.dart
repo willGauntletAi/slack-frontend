@@ -279,93 +279,65 @@ class _SearchAreaState extends State<SearchArea> {
               final List<Widget> items = [];
 
               // Add AI section
-              if (_isDebouncingAi || askAiProvider.isLoading) {
-                items.addAll([
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      'Loading AI results...',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  if (askAiProvider.error != null)
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        'AI search failed: ${askAiProvider.error}',
-                        style: const TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ...List.generate(3, (_) => _buildSkeletonCard()),
-                ]);
-              } else if (askAiProvider.lastResponse != null) {
-                if (askAiProvider.lastResponse!.answer.isNotEmpty) {
-                  items.add(
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+              if (_isDebouncingAi ||
+                  askAiProvider.isLoading ||
+                  askAiProvider.lastResponse != null) {
+                items.add(
+                  Card(
+                    margin: const EdgeInsets.all(8.0),
+                    child: ExpansionTile(
+                      leading: const Icon(Icons.psychology_outlined),
+                      title: const Text('AI Results'),
+                      subtitle: _isDebouncingAi || askAiProvider.isLoading
+                          ? const Text('Loading...')
+                          : askAiProvider.error != null
+                              ? Text('Error: ${askAiProvider.error}',
+                                  style: const TextStyle(color: Colors.red))
+                              : null,
+                      children: [
+                        if (!_isDebouncingAi &&
+                            !askAiProvider.isLoading &&
+                            askAiProvider.lastResponse != null) ...[
+                          if (askAiProvider.lastResponse!.answer.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.psychology_outlined),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'AI Answer',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
+                                  Text(askAiProvider.lastResponse!.answer),
                                 ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(askAiProvider.lastResponse!.answer),
-                            ],
-                          ),
-                        ),
-                      ),
+                            ),
+                          if (askAiProvider
+                              .lastResponse!.relevantMessages.isNotEmpty) ...[
+                            const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Text(
+                                'Most Relevant Messages',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            ...askAiProvider.lastResponse!.relevantMessages
+                                .map((msg) {
+                              return _buildMessageCard(
+                                content: msg.content,
+                                username: msg.username,
+                                createdAt: msg.createdAt,
+                                relevanceScore: msg.similarity,
+                                channelId: msg.channelId,
+                                messageId: msg.id,
+                                isAvatar: msg.isAvatar,
+                              );
+                            }),
+                          ],
+                        ],
+                      ],
                     ),
-                  );
-                }
-
-                if (askAiProvider.lastResponse!.relevantMessages.isNotEmpty) {
-                  items.add(
-                    const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text(
-                        'Most Relevant Messages',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  );
-
-                  items.addAll(
-                    askAiProvider.lastResponse!.relevantMessages.map((msg) {
-                      return _buildMessageCard(
-                        content: msg.content,
-                        username: msg.username,
-                        createdAt: msg.createdAt,
-                        relevanceScore: msg.similarity,
-                        channelId: msg.channelId,
-                        messageId: msg.id,
-                        isAvatar: msg.isAvatar,
-                      );
-                    }),
-                  );
-                }
+                  ),
+                );
               }
 
               // Add search results section
