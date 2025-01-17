@@ -447,10 +447,22 @@
           "lastUpdated": {
             "type": "string"
           },
-          "usernames": {
+          "members": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "username": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "username"
+              ]
             }
           }
         },
@@ -461,7 +473,7 @@
           "created_at",
           "updated_at",
           "lastUpdated",
-          "usernames"
+          "members"
         ]
       },
       "ListChannelsResponse": {
@@ -488,10 +500,22 @@
             "lastUpdated": {
               "type": "string"
             },
-            "usernames": {
+            "members": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "username"
+                ]
               }
             },
             "unread_count": {
@@ -509,7 +533,7 @@
             "created_at",
             "updated_at",
             "lastUpdated",
-            "usernames",
+            "members",
             "unread_count",
             "last_read_message"
           ]
@@ -545,10 +569,22 @@
             "workspace_name": {
               "type": "string"
             },
-            "usernames": {
+            "members": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "username": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "username"
+                ]
               }
             },
             "unread_count": {
@@ -568,7 +604,7 @@
             "lastUpdated",
             "workspace_id",
             "workspace_name",
-            "usernames",
+            "members",
             "unread_count",
             "last_read_message"
           ]
@@ -596,10 +632,22 @@
           "lastUpdated": {
             "type": "string"
           },
-          "usernames": {
+          "members": {
             "type": "array",
             "items": {
-              "type": "string"
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "username": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "username"
+              ]
             }
           }
         },
@@ -610,7 +658,7 @@
           "created_at",
           "updated_at",
           "lastUpdated",
-          "usernames"
+          "members"
         ]
       },
       "CreateMessageResponse": {

@@ -11,7 +11,7 @@ class Channel {
   final bool isPrivate;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final List<String> usernames;
+  final List<Member> members;
   final int unreadCount;
   final String? lastReadMessage;
   final DateTime lastUpdated;
@@ -22,11 +22,13 @@ class Channel {
     required this.isPrivate,
     required this.createdAt,
     required this.updatedAt,
-    required this.usernames,
+    required this.members,
     required this.unreadCount,
     this.lastReadMessage,
     required this.lastUpdated,
   });
+
+  List<String> get usernames => members.map((m) => m.username).toList();
 
   factory Channel.fromJson(Map<String, dynamic> json) {
     return Channel(
@@ -35,13 +37,9 @@ class Channel {
       isPrivate: json['is_private'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
-      usernames: (json['usernames'] as List<dynamic>?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          (json['members'] as List<dynamic>?)
-              ?.map((e) => (e as Map<String, dynamic>)['username'] as String)
-              .toList() ??
-          [],
+      members: (json['members'] as List<dynamic>)
+          .map((e) => Member.fromJson(e as Map<String, dynamic>))
+          .toList(),
       unreadCount: json['unread_count'] ?? 0,
       lastReadMessage: json['last_read_message'],
       lastUpdated: DateTime.parse(json['lastUpdated'] ?? json['updated_at']),
@@ -55,12 +53,29 @@ class Channel {
       isPrivate: json['is_private'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
-      usernames: (json['members'] as List<dynamic>)
-          .map((e) => (e as Map<String, dynamic>)['username'] as String)
+      members: (json['members'] as List<dynamic>)
+          .map((e) => Member.fromJson(e as Map<String, dynamic>))
           .toList(),
       unreadCount: 0, // New channels from websocket start with 0 unread
       lastReadMessage: null,
       lastUpdated: DateTime.parse(json['lastUpdated'] ?? json['updated_at']),
+    );
+  }
+}
+
+class Member {
+  final String id;
+  final String username;
+
+  Member({
+    required this.id,
+    required this.username,
+  });
+
+  factory Member.fromJson(Map<String, dynamic> json) {
+    return Member(
+      id: json['id'],
+      username: json['username'],
     );
   }
 }
@@ -134,7 +149,7 @@ class ChannelProvider extends ChangeNotifier {
               isPrivate: channel.isPrivate,
               createdAt: channel.createdAt,
               updatedAt: channel.updatedAt,
-              usernames: channel.usernames,
+              members: channel.members,
               unreadCount:
                   isSelected ? channel.unreadCount : channel.unreadCount + 1,
               lastReadMessage: channel.lastReadMessage,
@@ -369,7 +384,7 @@ class ChannelProvider extends ChangeNotifier {
       isPrivate: channel.isPrivate,
       createdAt: channel.createdAt,
       updatedAt: channel.updatedAt,
-      usernames: channel.usernames,
+      members: channel.members,
       //TODO: fix this. This only works if there is a single unread message. Otherwise, we might be marking several messages as read, but only decrementing the count by 1.
       unreadCount: channel.unreadCount > 0 ? channel.unreadCount - 1 : 0,
       lastReadMessage: messageId,
@@ -410,7 +425,7 @@ class ChannelProvider extends ChangeNotifier {
         isPrivate: channel.isPrivate,
         createdAt: channel.createdAt,
         updatedAt: channel.updatedAt,
-        usernames: [...channel.usernames],
+        members: [...channel.members],
         unreadCount: channel.unreadCount,
         lastReadMessage: channel.lastReadMessage,
         lastUpdated: channel.lastUpdated,
