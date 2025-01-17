@@ -9,6 +9,10 @@
     {
       "url": "http://localhost:3000",
       "description": "Local development server"
+    },
+    {
+      "url": "http://3.139.67.107",
+      "description": "Production server"
     }
   ],
   "tags": [
@@ -634,6 +638,9 @@
           "channel_id": {
             "type": "string"
           },
+          "is_avatar": {
+            "type": "boolean"
+          },
           "attachments": {
             "type": "array",
             "items": {
@@ -669,6 +676,7 @@
           "updated_at",
           "user_id",
           "channel_id",
+          "is_avatar",
           "attachments"
         ]
       },
@@ -701,6 +709,9 @@
             },
             "channel_id": {
               "type": "string"
+            },
+            "is_avatar": {
+              "type": "boolean"
             },
             "reactions": {
               "type": "array",
@@ -768,6 +779,7 @@
             "user_id",
             "username",
             "channel_id",
+            "is_avatar",
             "reactions",
             "attachments"
           ]
@@ -797,6 +809,9 @@
           },
           "channel_id": {
             "type": "string"
+          },
+          "is_avatar": {
+            "type": "boolean"
           },
           "attachments": {
             "type": "array",
@@ -833,6 +848,7 @@
           "updated_at",
           "user_id",
           "channel_id",
+          "is_avatar",
           "attachments"
         ]
       },
@@ -914,6 +930,9 @@
                 "updatedAt": {
                   "type": "string"
                 },
+                "is_avatar": {
+                  "type": "boolean"
+                },
                 "matchContext": {
                   "type": "string"
                 },
@@ -960,6 +979,7 @@
                 "username",
                 "createdAt",
                 "updatedAt",
+                "is_avatar",
                 "matchContext",
                 "attachments"
               ]
@@ -1011,6 +1031,9 @@
                 "updatedAt": {
                   "type": "string"
                 },
+                "is_avatar": {
+                  "type": "boolean"
+                },
                 "similarity": {
                   "type": "number"
                 }
@@ -1023,6 +1046,7 @@
                 "channelId",
                 "createdAt",
                 "updatedAt",
+                "is_avatar",
                 "similarity"
               ]
             }
@@ -3012,6 +3036,10 @@
                       ]
                     },
                     "default": []
+                  },
+                  "request_avatar": {
+                    "type": "string",
+                    "format": "uuid"
                   }
                 },
                 "required": [

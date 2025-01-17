@@ -16,6 +16,7 @@ class Message {
   final String userId;
   final String username;
   final String channelId;
+  final bool isAvatar;
   final List<MessageReaction> reactions;
   final List<MessageAttachment> attachments;
 
@@ -28,6 +29,7 @@ class Message {
     required this.userId,
     required this.username,
     required this.channelId,
+    required this.isAvatar,
     required this.reactions,
     required this.attachments,
   });
@@ -42,6 +44,7 @@ class Message {
       userId: json['user_id'],
       username: json['username'],
       channelId: json['channel_id'],
+      isAvatar: json['is_avatar'] ?? false,
       reactions: (json['reactions'] as List?)
               ?.map((r) => MessageReaction.fromJson(r))
               .toList() ??
@@ -141,6 +144,7 @@ class MessageProvider extends ChangeNotifier {
           'user_id': messageData['user_id'],
           'username': messageData['username'],
           'channel_id': channelId,
+          'is_avatar': messageData['is_avatar'] ?? false,
           'reactions': [], // New messages won't have reactions initially
           'attachments': (messageData['attachments'] as List<dynamic>?)
                   ?.map((a) => {
@@ -192,6 +196,7 @@ class MessageProvider extends ChangeNotifier {
               userId: _messages[messageIndex].userId,
               username: _messages[messageIndex].username,
               channelId: _messages[messageIndex].channelId,
+              isAvatar: _messages[messageIndex].isAvatar,
               reactions: [..._messages[messageIndex].reactions, reaction],
               attachments: _messages[messageIndex].attachments,
             );
@@ -221,6 +226,7 @@ class MessageProvider extends ChangeNotifier {
               userId: _messages[messageIndex].userId,
               username: _messages[messageIndex].username,
               channelId: _messages[messageIndex].channelId,
+              isAvatar: _messages[messageIndex].isAvatar,
               reactions: _messages[messageIndex]
                   .reactions
                   .where((r) => r.id != reactionId)
@@ -346,6 +352,7 @@ class MessageProvider extends ChangeNotifier {
     String content, {
     String? parentId,
     List<MessageAttachment>? attachments,
+    String? requestAvatar,
   }) async {
     final accessToken = _authProvider.accessToken;
     if (accessToken == null) {
@@ -369,6 +376,7 @@ class MessageProvider extends ChangeNotifier {
                     'size': a.size,
                   })
               .toList(),
+        if (requestAvatar != null) 'request_avatar': requestAvatar,
       };
 
       final response = await http.post(
