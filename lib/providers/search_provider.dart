@@ -13,6 +13,7 @@ class SearchResult {
   final DateTime updatedAt;
   final String matchContext;
   final List<SearchAttachment> attachments;
+  final bool isAvatar;
 
   SearchResult({
     required this.id,
@@ -24,6 +25,7 @@ class SearchResult {
     required this.updatedAt,
     required this.matchContext,
     required this.attachments,
+    required this.isAvatar,
   });
 
   factory SearchResult.fromJson(Map<String, dynamic> json) {
@@ -39,6 +41,7 @@ class SearchResult {
       attachments: (json['attachments'] as List)
           .map((a) => SearchAttachment.fromJson(a))
           .toList(),
+      isAvatar: json['is_avatar'],
     );
   }
 }

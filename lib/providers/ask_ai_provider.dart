@@ -31,6 +31,7 @@ class RelevantMessage {
   final DateTime createdAt;
   final DateTime updatedAt;
   final double similarity;
+  final bool isAvatar;
 
   RelevantMessage({
     required this.id,
@@ -41,6 +42,7 @@ class RelevantMessage {
     required this.createdAt,
     required this.updatedAt,
     required this.similarity,
+    required this.isAvatar,
   });
 
   factory RelevantMessage.fromJson(Map<String, dynamic> json) {
@@ -53,6 +55,7 @@ class RelevantMessage {
       createdAt: DateTime.parse(json['createdAt']),
       updatedAt: DateTime.parse(json['updatedAt']),
       similarity: json['similarity'].toDouble(),
+      isAvatar: json['is_avatar'],
     );
   }
 }

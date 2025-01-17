@@ -338,7 +338,9 @@ class _ChatAreaState extends State<ChatArea> {
                             return ChatMessage(
                               text: message.content,
                               isMe: isMe,
-                              username: message.username,
+                              username: message.isAvatar
+                                  ? '${message.username} (bot)'
+                                  : message.username,
                               timestamp: message.createdAt,
                               userId: message.userId,
                               onReply: () {

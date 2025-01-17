@@ -149,7 +149,9 @@ class _ThreadPanelState extends State<ThreadPanel> {
                 return ChatMessage(
                   text: message.content,
                   isMe: isMe,
-                  username: message.username,
+                  username: message.isAvatar
+                      ? '${message.username} (bot)'
+                      : message.username,
                   timestamp: message.createdAt,
                   userId: message.userId,
                   repliable: false,

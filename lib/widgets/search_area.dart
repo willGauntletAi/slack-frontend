@@ -154,6 +154,7 @@ class _SearchAreaState extends State<SearchArea> {
     double? relevanceScore,
     required String channelId,
     required String messageId,
+    bool isAvatar = false,
   }) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
@@ -170,7 +171,7 @@ class _SearchAreaState extends State<SearchArea> {
         ),
         title: Row(
           children: [
-            Expanded(child: Text(username)),
+            Expanded(child: Text(isAvatar ? '$username (bot)' : username)),
             if (relevanceScore != null)
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -360,6 +361,7 @@ class _SearchAreaState extends State<SearchArea> {
                         relevanceScore: msg.similarity,
                         channelId: msg.channelId,
                         messageId: msg.id,
+                        isAvatar: msg.isAvatar,
                       );
                     }),
                   );
@@ -400,6 +402,7 @@ class _SearchAreaState extends State<SearchArea> {
                       matchContext: result.matchContext,
                       channelId: result.channelId,
                       messageId: result.id,
+                      isAvatar: result.isAvatar,
                     );
                   }),
                 );
